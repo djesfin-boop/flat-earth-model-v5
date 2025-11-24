@@ -4,51 +4,226 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flat Earth Model v5 - Layer 0: Surface</title>
-    <style>/* ... оригинальные стили ... */</style>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: #000;
+        }
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        #canvas {
+            flex: 1;
+            display: block;
+        }
+        .panel {
+            width: 400px;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.3);
+        }
+        .panel h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #4ecdc4;
+            text-align: center;
+        }
+        .section {
+            margin-bottom: 25px;
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(78, 205, 196, 0.2);
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #4ecdc4;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
+            color: #b0b0b0;
+        }
+        .control-group input,
+        .control-group select {
+            width: 100%;
+            padding: 8px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(78, 205, 196, 0.3);
+            border-radius: 5px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+        .control-group input:focus,
+        .control-group select:focus {
+            outline: none;
+            border-color: #4ecdc4;
+            box-shadow: 0 0 10px rgba(78, 205, 196, 0.3);
+        }
+        .time-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .btn {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #4ecdc4 0%, #3aa99f 100%);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        #eventList {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        #eventList > div {
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+        #eventList button {
+            margin-top: 8px;
+            padding: 5px 10px;
+            background: #ff6b6b;
+            border: none;
+            border-radius: 3px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        #eventList button:hover {
+            background: #ff5252;
+        }
+        hr {
+            border: none;
+            height: 1px;
+            background: rgba(78, 205, 196, 0.2);
+            margin: 10px 0;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <canvas id="canvas"></canvas>
         <div class="panel">
-            <!-- ... остальной UI ... -->
+            <h1>🌍 Flat Earth Model v5</h1>
+            
             <div class="section">
-              <div class="section-title">🌑 Астрономические события</div>
-              <div id="eventList"></div>
+                <div class="section-title">⏰ Время и дата</div>
+                <div class="control-group">
+                    <label>Год</label>
+                    <input type="number" id="year" value="2025" min="2000" max="2100">
+                </div>
+                <div class="time-controls">
+                    <div class="control-group">
+                        <label>Месяц</label>
+                        <input type="number" id="month" value="11" min="1" max="12">
+                    </div>
+                    <div class="control-group">
+                        <label>День</label>
+                        <input type="number" id="day" value="24" min="1" max="31">
+                    </div>
+                </div>
+                <div class="time-controls">
+                    <div class="control-group">
+                        <label>Час</label>
+                        <input type="number" id="hour" value="12" min="0" max="23">
+                    </div>
+                    <div class="control-group">
+                        <label>Минуты</label>
+                        <input type="number" id="minute" value="0" min="0" max="59">
+                    </div>
+                </div>
+                <button class="btn" onclick="updateTimeFromInputs()">Обновить время</button>
+            </div>
+
+            <div class="section">
+                <div class="section-title">🌑 Астрономические события</div>
+                <div id="eventList">Загрузка...</div>
             </div>
         </div>
     </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script type="module">
         import SurfaceLayer from './layers/layer0-surface.js';
-        let scene, camera, renderer, controls, surfaceLayer, isAnimating = false;
-        let timeState = { year: 2025, month: 11, day: 24, hour: 9, minute: 21, second: 0 };
+
+        let scene, camera, renderer, controls, surfaceLayer;
+        let timeState = { year: 2025, month: 11, day: 24, hour: 12, minute: 0, second: 0 };
+
+        // Загрузка событий затмений
         async function loadEvents() {
-            const resp = await fetch('./assets/events/eclipse_events.json');
-            const events = await resp.json();
-            const eventList = document.getElementById('eventList');
-            eventList.innerHTML = events.map(ev => `
-              <div>
-                <b>${ev.event === 'solar_eclipse' ? 'Солнечное затмение' : 'Лунное затмение'}</b> — ${ev.date.slice(0,10)}<br>
-                ${ev.description}<br>
-                <button onclick="window.setEventTime('${ev.date}',${ev.longitude},${ev.latitude})">Показать на модели</button>
-              </div>
-            `).join('<hr>');
+            try {
+                const resp = await fetch('./assets/events/eclipse_events.json');
+                const events = await resp.json();
+                const eventList = document.getElementById('eventList');
+                eventList.innerHTML = events.map(ev => `
+                    <div>
+                        <b>${ev.event === 'solar_eclipse' ? 'Солнечное затмение' : 'Лунное затмение'}</b><br>
+                        ${ev.date.slice(0,10)}<br>
+                        ${ev.description}<br>
+                        <button onclick="window.setEventTime('${ev.date}',${ev.longitude},${ev.latitude})"> Показать на модели</button>
+                    </div>
+                `).join('<hr>');
+            } catch (error) {
+                document.getElementById('eventList').innerHTML = 'Ошибка загрузки событий';
+                console.error('Error loading events:', error);
+            }
         }
+
+        // Расчёт положений Солнца и Луны
         function calculateCelestialPositions(time) {
             const earthRadius = 20000;
             const dayOfYear = Math.floor((new Date(time.year, time.month - 1, time.day) - new Date(time.year, 0, 1)) / 86400000) + 1;
             const hourAngle = (time.hour + time.minute / 60) / 24 * 2 * Math.PI;
+            
             const sunDistance = earthRadius * 0.4;
             const sunX = sunDistance * Math.cos(hourAngle);
             const sunY = sunDistance * Math.sin(hourAngle);
+            
             const moonPhaseShift = dayOfYear * 0.0335;
             const moonAngle = hourAngle + moonPhaseShift;
             const moonDistance = earthRadius * 0.3;
             const moonX = moonDistance * Math.cos(moonAngle);
             const moonY = moonDistance * Math.sin(moonAngle);
+            
             return { sun: { x: sunX, y: sunY }, moon: { x: moonX, y: moonY } };
         }
+
+        // Установка времени события
         window.setEventTime = (date, lon, lat) => {
             const d = new Date(date);
             timeState.year = d.getUTCFullYear();
@@ -56,38 +231,86 @@
             timeState.day = d.getUTCDate();
             timeState.hour = d.getUTCHours();
             timeState.minute = d.getUTCMinutes();
+            
+            // Обновление полей ввода
+            document.getElementById('year').value = timeState.year;
+            document.getElementById('month').value = timeState.month;
+            document.getElementById('day').value = timeState.day;
+            document.getElementById('hour').value = timeState.hour;
+            document.getElementById('minute').value = timeState.minute;
+            
             updateModel();
             if (surfaceLayer) surfaceLayer.showEclipseMarker(lon, lat);
         };
+
+        // Обновление времени из полей ввода
+        window.updateTimeFromInputs = () => {
+            timeState.year = parseInt(document.getElementById('year').value);
+            timeState.month = parseInt(document.getElementById('month').value);
+            timeState.day = parseInt(document.getElementById('day').value);
+            timeState.hour = parseInt(document.getElementById('hour').value);
+            timeState.minute = parseInt(document.getElementById('minute').value);
+            updateModel();
+        };
+
+        // Инициализация сцены
         function initScene() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000510);
             scene.fog = new THREE.Fog(0x000510, 100000, 300000);
-            camera = new THREE.PerspectiveCamera(60, (window.innerWidth - 400) / window.innerHeight, 1000, 500000);
+            
+            camera = new THREE.PerspectiveCamera(
+                60,
+                (window.innerWidth - 400) / window.innerHeight,
+                1000,
+                500000
+            );
             camera.position.set(0, 50000, 50000);
             camera.lookAt(0, 0, 0);
+            
             const canvas = document.getElementById('canvas');
             renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
             renderer.setSize(window.innerWidth - 400, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
+            
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
             controls.minDistance = 15000;
             controls.maxDistance = 150000;
+            
             scene.add(new THREE.AmbientLight(0x404060, 0.2));
+            
             surfaceLayer = new SurfaceLayer(scene, { earthRadius: 20000 });
+            
             updateModel();
             loadEvents();
             animate();
         }
+
+        // Обновление модели
         function updateModel() {
-            if(surfaceLayer){
+            if (surfaceLayer) {
                 const positions = calculateCelestialPositions(timeState);
                 surfaceLayer.updateLighting(positions.sun, positions.moon);
             }
         }
-        window.addEventListener('resize', () => {/*...*/});
+
+        // Цикл анимации
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Обработка изменения размера окна
+        window.addEventListener('resize', () => {
+            camera.aspect = (window.innerWidth - 400) / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth - 400, window.innerHeight);
+        });
+
+        // Запуск при загрузке
         window.addEventListener('DOMContentLoaded', initScene);
     </script>
 </body>
