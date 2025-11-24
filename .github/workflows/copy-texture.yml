@@ -1,0 +1,27 @@
+name: Copy Azimuthal Map from v2
+
+on:
+  workflow_dispatch:
+
+jobs:
+  copy-texture:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout v5
+        uses: actions/checkout@v3
+        
+      - name: Create textures directory
+        run: mkdir -p assets/textures
+        
+      - name: Download texture from v2
+        run: |
+          curl -L -o assets/textures/azimuthal_map.png \
+            https://github.com/djesfin-boop/flat-earth-model-v2/raw/main/azimuthal_map.png
+            
+      - name: Commit and push
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add assets/textures/azimuthal_map.png
+          git commit -m "fix: Replace azimuthal map texture with correct file from v2 (15.1 MB)"
+          git push
