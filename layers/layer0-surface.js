@@ -1,7 +1,7 @@
 /**
  * Layer 0: Surface Layer - Flat Earth Model v5
- * Добавлены световые пятна Солнца и Луны с правильной координатной сеткой
- * @version 5.5.0
+ * Световые пятна Солнца и Луны на азимутальной карте
+ * @version 5.6.0
  */
 
 class SurfaceLayer {
@@ -9,7 +9,6 @@ class SurfaceLayer {
         this.scene = scene;
         this.config = config;
         this.mesh = null;
-        this.gridGroup = new THREE.Group();
         this.sunPosition = { x: 0, y: 0 };
         this.moonPosition = { x: 0, y: 0 };
         this.moonPhase = 0;
@@ -18,7 +17,6 @@ class SurfaceLayer {
         this.moonPhaseMesh = null;
         
         this.createSurface();
-        this.createCoordGrid();
         this.createSunSpot();
         this.createMoonPhaseSpot();
     }
@@ -30,67 +28,27 @@ class SurfaceLayer {
             texture.wrapS = THREE.ClampToEdgeWrapping;
             texture.wrapT = THREE.ClampToEdgeWrapping;
             texture.minFilter = THREE.LinearFilter;
-            const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
+            const material = new THREE.MeshBasicMaterial({ 
+                map: texture, 
+                side: THREE.DoubleSide 
+            });
             this.mesh = new THREE.Mesh(geometry, material);
             this.mesh.rotation.x = -Math.PI / 2;
             this.scene.add(this.mesh);
         });
     }
     
-    createCoordGrid() {
-        const r = this.config.earthRadius;
-        const meridians = 24; // каждые 15°
-        const parallels = 9; // широты: 10°, 20°, ..., 90° (экватор до края)
-        this.gridGroup.clear();
-        
-        // Меридианы (линии долготы от центра к краю)
-        for (let i = 0; i < meridians; i++) {
-            const angle = (i / meridians) * Math.PI * 2;
-            const x1 = Math.sin(angle) * r;
-            const y1 = Math.cos(angle) * r;
-            const material = new THREE.LineBasicMaterial({ color: 0x00ff88, linewidth: 2, opacity: 0.6, transparent: true });
-            const points = [
-                new THREE.Vector3(0, 0.1, 0),
-                new THREE.Vector3(x1, 0.1, y1)
-            ];
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const line = new THREE.Line(geometry, material);
-            line.rotation.x = -Math.PI / 2;
-            this.gridGroup.add(line);
-        }
-        
-        // Параллели (широты) - концентрические круги
-        // Формула азимутальной проекции: r = R * (90 - φ) / 90
-        for (let i = 1; i <= parallels; i++) {
-            const latitude = 90 - (i * 10); // широта в градусах: 80°, 70°, ..., 0° (экватор)
-            const pr = r * (90 - latitude) / 90;
-            const material = new THREE.LineBasicMaterial({ color: 0x0088ff, linewidth: 1, opacity: 0.5, transparent: true });
-            const circlePoints = [];
-            for (let j = 0; j <= 128; j++) {
-                const a = (j / 128) * Math.PI * 2;
-                const x = Math.sin(a) * pr;
-                const y = Math.cos(a) * pr;
-                circlePoints.push(new THREE.Vector3(x, 0.11, y));
-            }
-            const circleGeo = new THREE.BufferGeometry().setFromPoints(circlePoints);
-            const circle = new THREE.Line(circleGeo, material);
-            circle.rotation.x = -Math.PI / 2;
-            this.gridGroup.add(circle);
-        }
-        
-        this.scene.add(this.gridGroup);
-    }
-    
     createSunSpot() {
-        // Солнечное пятно с радиальным градиентом
-        const sunRadius = 4000; // радиус дневного пятна ~4000 км
+        // Солнечное пятно с ярким радиальным градиентом
+        const sunRadius = 5000; // увеличенный радиус для лучшей видимости
         const geometry = new THREE.CircleGeometry(sunRadius, 128);
         
         const material = new THREE.ShaderMaterial({
             transparent: true,
+            depthWrite: false,
             uniforms: {
-                color: { value: new THREE.Color(0xfff4a3) },
-                centerOpacity: { value: 0.5 },
+                color: { value: new THREE.Color(0xffeb3b) },
+                centerOpacity: { value: 0.7 },
                 edgeOpacity: { value: 0.0 }
             },
             vertexShader: `
@@ -110,9 +68,9 @@ class SurfaceLayer {
                     float r = length(vUv);
                     if (r > 1.0) discard;
                     
-                    // Радиальный градиент от центра к краю
-                    float gradient = 1.0 - r;
-                    float alpha = mix(edgeOpacity, centerOpacity, gradient * gradient);
+                    // Сильный градиент для яркого центра
+                    float gradient = pow(1.0 - r, 2.5);
+                    float alpha = mix(edgeOpacity, centerOpacity, gradient);
                     
                     gl_FragColor = vec4(color, alpha);
                 }
@@ -120,22 +78,23 @@ class SurfaceLayer {
         });
         
         this.sunSpotMesh = new THREE.Mesh(geometry, material);
-        this.sunSpotMesh.position.set(0, 15, 0);
+        this.sunSpotMesh.position.set(0, 25, 0);
         this.sunSpotMesh.rotation.x = -Math.PI / 2;
         this.scene.add(this.sunSpotMesh);
     }
     
     createMoonPhaseSpot() {
-        // Лунное пятно с учётом фаз
-        const radius = 1200;
+        // Лунное пятно с учётом фаз и ярким градиентом
+        const radius = 2000;
         const geometry = new THREE.CircleGeometry(radius, 128);
         
         const material = new THREE.ShaderMaterial({
             transparent: true,
+            depthWrite: false,
             uniforms: {
                 phase: { value: 0 },
-                color: { value: new THREE.Color(0xc1caf6) },
-                opacity: { value: 0.3 }
+                color: { value: new THREE.Color(0xadd8e6) },
+                opacity: { value: 0.5 }
             },
             vertexShader: `
                 varying vec2 vUv;
@@ -160,8 +119,8 @@ class SurfaceLayer {
                     float thresh = 0.5 + 0.5 * phase;
                     float visible = step(mask, thresh);
                     
-                    // Градиент от центра к краю
-                    float gradient = 1.0 - r;
+                    // Яркий градиент
+                    float gradient = pow(1.0 - r, 1.8);
                     float alpha = opacity * visible * gradient;
                     
                     gl_FragColor = vec4(color, alpha);
@@ -170,7 +129,7 @@ class SurfaceLayer {
         });
         
         this.moonPhaseMesh = new THREE.Mesh(geometry, material);
-        this.moonPhaseMesh.position.set(0, 18, 0);
+        this.moonPhaseMesh.position.set(0, 28, 0);
         this.moonPhaseMesh.rotation.x = -Math.PI / 2;
         this.scene.add(this.moonPhaseMesh);
     }
@@ -178,27 +137,29 @@ class SurfaceLayer {
     updateLighting(sunPos, moonPos) {
         // Обновление положения солнечного пятна
         if (this.sunSpotMesh && sunPos) {
-            this.sunSpotMesh.position.set(sunPos.x, 15, sunPos.y);
+            this.sunSpotMesh.position.set(sunPos.x, 25, sunPos.y);
         }
         
         // Обновление положения лунного пятна
         if (this.moonPhaseMesh && moonPos) {
-            this.moonPhaseMesh.position.set(moonPos.x, 18, moonPos.y);
+            this.moonPhaseMesh.position.set(moonPos.x, 28, moonPos.y);
         }
         
         // Расчет фазы Луны
-        const sx = sunPos.x, sy = sunPos.y;
-        const mx = moonPos.x, my = moonPos.y;
-        const sunLen = Math.sqrt(sx * sx + sy * sy);
-        const moonLen = Math.sqrt(mx * mx + my * my);
-        
-        if (sunLen > 0 && moonLen > 0) {
-            const l_s_dot = (sx * mx + sy * my) / (sunLen * moonLen);
-            let phase = Math.acos(Math.max(-1, Math.min(1, l_s_dot))) / Math.PI;
-            phase = Math.cos(phase * Math.PI);
+        if (sunPos && moonPos) {
+            const sx = sunPos.x, sy = sunPos.y;
+            const mx = moonPos.x, my = moonPos.y;
+            const sunLen = Math.sqrt(sx * sx + sy * sy);
+            const moonLen = Math.sqrt(mx * mx + my * my);
             
-            if (this.moonPhaseMesh && this.moonPhaseMesh.material.uniforms) {
-                this.moonPhaseMesh.material.uniforms.phase.value = phase;
+            if (sunLen > 0 && moonLen > 0) {
+                const l_s_dot = (sx * mx + sy * my) / (sunLen * moonLen);
+                let phase = Math.acos(Math.max(-1, Math.min(1, l_s_dot))) / Math.PI;
+                phase = Math.cos(phase * Math.PI);
+                
+                if (this.moonPhaseMesh && this.moonPhaseMesh.material.uniforms) {
+                    this.moonPhaseMesh.material.uniforms.phase.value = phase;
+                }
             }
         }
     }
@@ -213,17 +174,19 @@ class SurfaceLayer {
         const r = this.config.earthRadius;
         const phi = (90 - lat) * Math.PI / 180;
         const theta = lon * Math.PI / 180;
-        const x = r * Math.sin(phi) * Math.sin(theta);
-        const y = r * Math.sin(phi) * Math.cos(theta);
+        const distance = r * (phi / (Math.PI / 2)); // расстояние от центра
+        const x = distance * Math.sin(theta);
+        const y = distance * Math.cos(theta);
         
-        const markerGeometry = new THREE.RingGeometry(550, 800, 64);
+        const markerGeometry = new THREE.RingGeometry(500, 700, 64);
         const markerMaterial = new THREE.MeshBasicMaterial({ 
             color: 0xff0000, 
             transparent: true, 
-            opacity: 0.5 
+            opacity: 0.6,
+            depthWrite: false
         });
         this.eclipseMarker = new THREE.Mesh(markerGeometry, markerMaterial);
-        this.eclipseMarker.position.set(x, 22, y);
+        this.eclipseMarker.position.set(x, 30, y);
         this.eclipseMarker.rotation.x = -Math.PI / 2;
         this.scene.add(this.eclipseMarker);
     }
