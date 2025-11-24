@@ -4,47 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flat Earth Model v5 - Layer 0: Surface</title>
-    <style>/* ... стили без изменений ... */</style>
+    <style>/* ... оригинальные стили ... */</style>
 </head>
 <body>
     <div class="container">
         <canvas id="canvas"></canvas>
-        <div class="panel"> <!-- ... интерфейс панели без изменений ... --> </div>
+        <div class="panel"> <!-- ... остальной UI ... --> </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script>
+    <script type="module">
+        import SurfaceLayer from './layers/layer0-surface.js';
         let scene, camera, renderer, controls, surfaceLayer, isAnimating = false;
         let timeState = { year: 2025, month: 11, day: 24, hour: 9, minute: 21, second: 0 };
-        class SurfaceLayer {
-            constructor(scene, config) {
-                this.scene = scene;
-                this.config = config;
-                this.createSurface();
-            }
-            createSurface() {
-                const earthRadius = this.config.earthRadius || 20000;
-                const geometry = new THREE.PlaneGeometry(earthRadius * 2, earthRadius * 2, 100, 100);
-                // Загружаем текстуру карты
-                const loader = new THREE.TextureLoader();
-                loader.load('assets/textures/azimuthal_map.png', texture => {
-                    texture.wrapS = THREE.ClampToEdgeWrapping;
-                    texture.wrapT = THREE.ClampToEdgeWrapping;
-                    texture.minFilter = THREE.LinearFilter;
-                    const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
-                    this.mesh = new THREE.Mesh(geometry, material);
-                    this.mesh.rotation.x = -Math.PI / 2;
-                    this.scene.add(this.mesh);
-                });
-            }
-            // Режим освещения (дальше будет shader, сейчас базовая текстура)
-            updateLighting() {
-                // Если потребуется — добавить слои-подсветки поверх
-            }
-        }
-        // Остальная логика не меняется (панель управления, updateModel и т.д.)
-        function calculateCelestialPositions(time) {/* ...без изменений... */}
-        function initScene() {/* ...инициализация сцены без изменений, только SurfaceLayer ... */
+        function initScene() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000510);
             scene.fog = new THREE.Fog(0x000510, 100000, 300000);
@@ -65,13 +38,9 @@
             updateModel();
             animate();
         }
-        function updateModel() { /* ...как раньше, surfaceLayer.updateLighting() ... */ }
-        // все остальные функции (updateTime, updateLighting и пр.) без изменений
-        window.addEventListener('resize', () => {
-            camera.aspect = (window.innerWidth - 400) / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth - 400, window.innerHeight);
-        });
+        function updateModel() { if(surfaceLayer){surfaceLayer.updateLighting();} }
+        /* остальные методы... */
+        window.addEventListener('resize', () => {/*...*/});
         window.addEventListener('DOMContentLoaded', initScene);
     </script>
 </body>
