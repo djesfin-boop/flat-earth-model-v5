@@ -9,7 +9,13 @@
 <body>
     <div class="container">
         <canvas id="canvas"></canvas>
-        <div class="panel"> <!-- ... остальной UI ... --> </div>
+        <div class="panel">
+            <!-- ... остальной UI ... -->
+            <div class="section">
+              <div class="section-title">🌑 Астрономические события</div>
+              <div id="eventList"></div>
+            </div>
+        </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -17,8 +23,20 @@
         import SurfaceLayer from './layers/layer0-surface.js';
         let scene, camera, renderer, controls, surfaceLayer, isAnimating = false;
         let timeState = { year: 2025, month: 11, day: 24, hour: 9, minute: 21, second: 0 };
+        async function loadEvents() {
+            const resp = await fetch('./assets/events/eclipse_events.json');
+            const events = await resp.json();
+            const eventList = document.getElementById('eventList');
+            eventList.innerHTML = events.map(ev => `
+              <div>
+                <b>${ev.event === 'solar_eclipse' ? 'Солнечное затмение' : 'Лунное затмение'}</b> — ${ev.date.slice(0,10)}<br>
+                ${ev.description}<br>
+                <button onclick="window.setEventTime('${ev.date}',${ev.longitude},${ev.latitude})">Показать на модели</button>
+              </div>
+            `).join('<hr>');
+        }
         function calculateCelestialPositions(time) {
-            const earthRadius = 20000; // Фикс для Layer 0 демо
+            const earthRadius = 20000;
             const dayOfYear = Math.floor((new Date(time.year, time.month - 1, time.day) - new Date(time.year, 0, 1)) / 86400000) + 1;
             const hourAngle = (time.hour + time.minute / 60) / 24 * 2 * Math.PI;
             const sunDistance = earthRadius * 0.4;
@@ -31,6 +49,16 @@
             const moonY = moonDistance * Math.sin(moonAngle);
             return { sun: { x: sunX, y: sunY }, moon: { x: moonX, y: moonY } };
         }
+        window.setEventTime = (date, lon, lat) => {
+            const d = new Date(date);
+            timeState.year = d.getUTCFullYear();
+            timeState.month = d.getUTCMonth() + 1;
+            timeState.day = d.getUTCDate();
+            timeState.hour = d.getUTCHours();
+            timeState.minute = d.getUTCMinutes();
+            updateModel();
+            // В будущем добавить выделение на диске для событий!
+        };
         function initScene() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000510);
@@ -50,6 +78,7 @@
             scene.add(new THREE.AmbientLight(0x404060, 0.2));
             surfaceLayer = new SurfaceLayer(scene, { earthRadius: 20000 });
             updateModel();
+            loadEvents();
             animate();
         }
         function updateModel() {
