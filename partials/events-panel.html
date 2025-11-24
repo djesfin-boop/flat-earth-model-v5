@@ -1,0 +1,22 @@
+<div class="section">
+  <div class="section-title">🌑 Астрономические события</div>
+  <div id="eventList"></div>
+</div>
+<script type="module">
+import eclipseEvents from './assets/events/eclipse_events.json';
+function renderEvents() {
+  const eventList = document.getElementById('eventList');
+  if (!eventList || !eclipseEvents) return;
+  eventList.innerHTML = eclipseEvents.map(ev => `
+    <div>
+      <b>${ev.event === 'solar_eclipse' ? 'Солнечное затмение' : 'Лунное затмение'}</b> — ${ev.date.slice(0,10)}<br>
+      ${ev.description}<br>
+      <button onclick="setEventTime('${ev.date}',${ev.longitude},${ev.latitude})">Показать на модели</button>
+    </div>
+  `).join('<hr>');
+}
+window.setEventTime = function(date, lon, lat){
+  // Здесь будет логика: установка времени + выделение затмения
+};
+document.addEventListener('DOMContentLoaded',renderEvents);
+</script>

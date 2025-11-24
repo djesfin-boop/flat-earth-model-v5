@@ -1,215 +1,137 @@
 /**
  * Layer 0: Surface Layer - Flat Earth Model v5
- * Реалистичное освещение поверхности с пятнами от Солнца и Луны
- * 
- * @version 5.0.0
- * @author Flat Earth Model Team
+ * Добавлены визуальные маркеры затмений с учётом координатной сети
+ * @version 5.4.0
  */
 
 class SurfaceLayer {
-    /**
-     * @param {THREE.Scene} scene - Three.js сцена
-     * @param {Object} config - Конфигурация слоя
-     * @param {number} config.earthRadius - Радиус Земли в км
-     */
     constructor(scene, config) {
         this.scene = scene;
         this.config = config;
         this.mesh = null;
+        this.gridGroup = new THREE.Group();
         this.sunPosition = { x: 0, y: 0 };
         this.moonPosition = { x: 0, y: 0 };
-        
+        this.moonPhase = 0;
+        this.eclipseMarker = null;
         this.createSurface();
+        this.createCoordGrid();
+        this.createMoonPhaseSpot();
     }
-
-    /**
-     * Создание геометрии и материала поверхности
-     */
     createSurface() {
-        // Высокополигональная геометрия для плавных градиентов
         const geometry = new THREE.CircleGeometry(this.config.earthRadius, 512);
-        
-        // Кастомные шейдеры для реалистичного освещения
-        const material = new THREE.ShaderMaterial({
-            uniforms: {
-                sunPosition: { value: new THREE.Vector2(0, 0) },
-                moonPosition: { value: new THREE.Vector2(0, 0) },
-                sunIntensity: { value: 1.0 },
-                moonIntensity: { value: 0.2 },
-                sunRadius: { value: 3000 },
-                moonRadius: { value: 800 }
-            },
-            vertexShader: `
-                varying vec2 vPosition;
-                
-                void main() {
-                    vPosition = position.xy;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
-                uniform vec2 sunPosition;
-                uniform vec2 moonPosition;
-                uniform float sunIntensity;
-                uniform float moonIntensity;
-                uniform float sunRadius;
-                uniform float moonRadius;
-                
-                varying vec2 vPosition;
-                
-                void main() {
-                    // Расчет расстояния до подсолнечной точки
-                    float distToSun = length(vPosition - sunPosition);
-                    float sunBrightness = 0.0;
-                    
-                    if (distToSun < sunRadius) {
-                        float t = distToSun / sunRadius;
-                        sunBrightness = (1.0 - t) * sunIntensity;
-                        
-                        // Мягкий край для реалистичности
-                        if (t > 0.7) {
-                            sunBrightness *= (1.0 - (t - 0.7) / 0.3);
-                        }
-                    }
-                    
-                    // Расчет расстояния до подлунной точки
-                    float distToMoon = length(vPosition - moonPosition);
-                    float moonBrightness = 0.0;
-                    
-                    if (distToMoon < moonRadius) {
-                        float t = distToMoon / moonRadius;
-                        moonBrightness = (1.0 - t * t) * moonIntensity;
-                    }
-                    
-                    // Базовый цвет поверхности (ночь)
-                    vec3 baseColor = vec3(0.1, 0.2, 0.3);
-                    
-                    // Солнечный свет (теплый)
-                    vec3 sunColor = vec3(1.0, 0.96, 0.88) * sunBrightness;
-                    
-                    // Лунный свет (холодный)
-                    vec3 moonColor = vec3(0.69, 0.77, 0.87) * moonBrightness;
-                    
-                    // Финальный цвет
-                    gl_FragColor = vec4(baseColor + sunColor + moonColor, 1.0);
-                }
-            `,
-            side: THREE.DoubleSide
+        // Текстура Глиссона
+        const loader = new THREE.TextureLoader();
+        loader.load('assets/textures/azimuthal_map.png', texture => {
+            texture.wrapS = THREE.ClampToEdgeWrapping;
+            texture.wrapT = THREE.ClampToEdgeWrapping;
+            texture.minFilter = THREE.LinearFilter;
+            const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
+            this.mesh = new THREE.Mesh(geometry, material);
+            this.mesh.rotation.x = -Math.PI / 2;
+            this.scene.add(this.mesh);
         });
-        
-        // Создание меша
-        this.mesh = new THREE.Mesh(geometry, material);
-        this.mesh.rotation.x = -Math.PI / 2; // Поворот в горизонтальное положение
-        
-        // Добавление в сцену
-        this.scene.add(this.mesh);
     }
-
-    /**
-     * Обновление освещения на основе положений светил
-     * @param {Object} sunPos - Позиция Солнца {x, y}
-     * @param {Object} moonPos - Позиция Луны {x, y}
-     */
+    createCoordGrid() {
+        const r = this.config.earthRadius;
+        const meridians = 24; // каждые 15°
+        const parallels = 6; // каждые 2000км
+        this.gridGroup.clear();
+        // Меридианы
+        for (let i = 0; i < meridians; i++) {
+            const angle = (i / meridians) * Math.PI * 2;
+            const x1 = Math.cos(angle) * r;
+            const y1 = Math.sin(angle) * r;
+            const material = new THREE.LineBasicMaterial({ color: 0x00ff88, linewidth: 2 });
+            const points = [new THREE.Vector3(0, 0.1, 0), new THREE.Vector3(x1, 0.1, y1)];
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const line = new THREE.Line(geometry, material);
+            line.rotation.x = -Math.PI / 2;
+            this.gridGroup.add(line);
+        }
+        // Параллели
+        for (let i = 1; i < parallels; i++) {
+            const pr = r * (i / parallels);
+            const material = new THREE.LineBasicMaterial({ color: 0x0088ff, linewidth: 1 });
+            const circlePoints = [];
+            for (let j = 0; j <= 128; j++) {
+                const a = (j / 128) * Math.PI * 2;
+                const x = Math.cos(a) * pr;
+                const y = Math.sin(a) * pr;
+                circlePoints.push(new THREE.Vector3(x, 0.11, y));
+            }
+            const circleGeo = new THREE.BufferGeometry().setFromPoints(circlePoints);
+            const circle = new THREE.Line(circleGeo, material);
+            circle.rotation.x = -Math.PI / 2;
+            this.gridGroup.add(circle);
+        }
+        this.scene.add(this.gridGroup);
+    }
+    createMoonPhaseSpot() {
+        // Рисуем круг, маска — custom fragmentShader
+        const radius = 800;
+        const geometry = new THREE.CircleGeometry(radius, 128);
+        const material = new THREE.ShaderMaterial({
+            transparent: true,
+            uniforms: {
+                phase: { value: 0 },
+                color: { value: new THREE.Color(0xc1caf6) },
+                opacity: { value: 0.21 }
+            },
+            vertexShader: `varying vec2 vUv; void main() { vUv = uv * 2.0 - 1.0; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+            fragmentShader: `
+                uniform float phase;
+                uniform vec3 color;
+                uniform float opacity;
+                varying vec2 vUv;
+                void main() {
+                    float r = length(vUv);
+                    if (r > 1.0) discard;
+                    float angle = atan(vUv.y, vUv.x);
+                    float phaseShift = phase * 3.1415926;
+                    float mask = (cos(angle - phaseShift) + 1.0) / 2.0;
+                    float thresh = 0.5 + 0.5 * phase;
+                    float visible = step(mask, thresh);
+                    gl_FragColor = vec4(color, opacity * visible * (1.0 - r));
+                }`
+        });
+        this.moonPhaseMesh = new THREE.Mesh(geometry, material);
+        this.moonPhaseMesh.position.set(0, 21, 0);
+        this.moonPhaseMesh.rotation.x = -Math.PI / 2;
+        this.scene.add(this.moonPhaseMesh);
+    }
     updateLighting(sunPos, moonPos) {
-        if (!this.mesh || !this.mesh.material.uniforms) return;
-        
-        this.sunPosition = sunPos;
-        this.moonPosition = moonPos;
-        
-        // Обновление uniform-переменных шейдера
-        this.mesh.material.uniforms.sunPosition.value.set(sunPos.x, sunPos.y);
-        this.mesh.material.uniforms.moonPosition.value.set(moonPos.x, moonPos.y);
-        this.mesh.material.uniforms.sunIntensity.value = 
-            parseFloat(document.getElementById('sunIntensity').value) / 100;
-        this.mesh.material.uniforms.moonIntensity.value = 
-            parseFloat(document.getElementById('moonIntensity').value) / 100;
-        this.mesh.material.uniforms.sunRadius.value = 
-            parseFloat(document.getElementById('sunRadius').value);
-        this.mesh.material.uniforms.moonRadius.value = 
-            parseFloat(document.getElementById('moonRadius').value);
-    }
-
-    /**
-     * Получить яркость в конкретной точке поверхности
-     * @param {number} x - Координата X
-     * @param {number} y - Координата Y
-     * @returns {number} Яркость от 0.0 до 1.0
-     */
-    getBrightnessAt(x, y) {
-        const distToSun = Math.sqrt(
-            Math.pow(x - this.sunPosition.x, 2) + 
-            Math.pow(y - this.sunPosition.y, 2)
-        );
-        const distToMoon = Math.sqrt(
-            Math.pow(x - this.moonPosition.x, 2) + 
-            Math.pow(y - this.moonPosition.y, 2)
-        );
-        
-        const sunRadius = parseFloat(document.getElementById('sunRadius').value);
-        const moonRadius = parseFloat(document.getElementById('moonRadius').value);
-        
-        let brightness = 0.1; // Базовая яркость
-        
-        if (distToSun < sunRadius) {
-            const t = distToSun / sunRadius;
-            brightness += (1.0 - t) * 0.9;
+        // Обновление положения Луны
+        if(this.moonPhaseMesh && moonPos) {
+            this.moonPhaseMesh.position.set(moonPos.x, 21, moonPos.y);
         }
-        
-        if (distToMoon < moonRadius) {
-            const t = distToMoon / moonRadius;
-            brightness += (1.0 - t * t) * 0.2;
+        // Расчет фазы
+        const sx = sunPos.x, sy = sunPos.y;
+        const mx = moonPos.x, my = moonPos.y;
+        const l_s_dot = (sx * mx + sy * my) / (Math.sqrt(sx * sx + sy * sy) * Math.sqrt(mx * mx + my * my));
+        let phase = Math.acos(Math.max(-1, Math.min(1, l_s_dot))) / Math.PI;
+        phase = Math.cos(phase * Math.PI);
+        if(this.moonPhaseMesh && this.moonPhaseMesh.material.uniforms) {
+            this.moonPhaseMesh.material.uniforms.phase.value = phase;
         }
-        
-        return Math.min(brightness, 1.0);
     }
-
-    /**
-     * Получить положение подсолнечной точки
-     * @returns {Object} {x, y, intensity}
-     */
-    getSunSubsolarPoint() {
-        return {
-            x: this.sunPosition.x,
-            y: this.sunPosition.y,
-            intensity: parseFloat(document.getElementById('sunIntensity').value) / 100
-        };
-    }
-
-    /**
-     * Получить положение подлунной точки
-     * @returns {Object} {x, y, intensity}
-     */
-    getMoonSublunarPoint() {
-        return {
-            x: this.moonPosition.x,
-            y: this.moonPosition.y,
-            intensity: parseFloat(document.getElementById('moonIntensity').value) / 100
-        };
-    }
-
-    /**
-     * Экспорт состояния слоя для других слоёв
-     * @returns {Object} Состояние слоя
-     */
-    exportState() {
-        return {
-            sunPosition: this.sunPosition,
-            moonPosition: this.moonPosition,
-            earthRadius: this.config.earthRadius,
-            sunIntensity: this.mesh.material.uniforms.sunIntensity.value,
-            moonIntensity: this.mesh.material.uniforms.moonIntensity.value,
-            sunRadius: this.mesh.material.uniforms.sunRadius.value,
-            moonRadius: this.mesh.material.uniforms.moonRadius.value
-        };
-    }
-
-    /**
-     * Обновление радиуса Земли
-     * @param {number} newRadius - Новый радиус в км
-     */
-    updateEarthRadius(newRadius) {
-        this.config.earthRadius = newRadius;
-        this.scene.remove(this.mesh);
-        this.createSurface();
+    showEclipseMarker(lon, lat) {
+        // Удаляем предыдущий маркер
+        if (this.eclipseMarker) {
+            this.scene.remove(this.eclipseMarker);
+        }
+        // широта/долгота в x/y (азимутальная)
+        const r = this.config.earthRadius;
+        const phi = (90 - lat) * Math.PI / 180; // до север.полюса
+        const theta = lon * Math.PI / 180;
+        const x = r * Math.sin(phi) * Math.sin(theta);
+        const y = r * Math.sin(phi) * Math.cos(theta);
+        const markerGeometry = new THREE.RingGeometry(550, 800, 64);
+        const markerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.4 });
+        this.eclipseMarker = new THREE.Mesh(markerGeometry, markerMaterial);
+        this.eclipseMarker.position.set(x, 22, y);
+        this.eclipseMarker.rotation.x = -Math.PI / 2;
+        this.scene.add(this.eclipseMarker);
     }
 }
+export default SurfaceLayer;

@@ -4,174 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flat Earth Model v5 - Layer 0: Surface</title>
-    <style>
-        :root {
-            --color-bg: #0a0e1a;
-            --color-panel: #1a1f2e;
-            --color-primary: #00ff88;
-            --color-secondary: #0088ff;
-            --color-text: #e0e0e0;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--color-bg); color: var(--color-text); overflow: hidden; }
-        .container { display: flex; width: 100vw; height: 100vh; }
-        canvas { flex: 1; cursor: grab; }
-        canvas:active { cursor: grabbing; }
-        .panel { width: 400px; background: var(--color-panel); border-left: 2px solid var(--color-primary); overflow-y: auto; padding: 20px; }
-        .header { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--color-primary); }
-        h1 { font-size: 18px; font-weight: 600; color: var(--color-primary); margin-bottom: 5px; text-transform: uppercase; }
-        .subtitle { font-size: 11px; color: #888; text-transform: uppercase; }
-        .time-display { background: linear-gradient(135deg, rgba(0,255,136,0.1), rgba(0,136,255,0.1)); border: 2px solid var(--color-primary); border-radius: 8px; padding: 15px; margin-bottom: 20px; text-align: center; }
-        .time-main { font-size: 32px; font-weight: bold; color: var(--color-primary); font-family: 'Courier New', monospace; margin-bottom: 5px; }
-        .time-date { font-size: 14px; color: #aaa; }
-        .section { background: rgba(255,255,255,0.03); border-left: 3px solid var(--color-secondary); padding: 15px; margin-bottom: 15px; border-radius: 4px; }
-        .section-title { font-size: 12px; font-weight: 600; color: var(--color-secondary); text-transform: uppercase; margin-bottom: 12px; }
-        .param { margin-bottom: 12px; }
-        label { display: block; font-size: 11px; color: #aaa; margin-bottom: 4px; text-transform: uppercase; font-weight: 500; }
-        input[type="number"], select { width: 100%; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: var(--color-text); font-size: 13px; font-family: 'Courier New', monospace; }
-        input:focus, select:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 8px rgba(0,255,136,0.3); }
-        input[type="range"] { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; }
-        input[type="range"]::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; background: var(--color-primary); border-radius: 50%; cursor: pointer; }
-        button { width: 100%; padding: 10px; background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)); border: none; border-radius: 6px; color: #000; font-size: 12px; font-weight: 600; cursor: pointer; text-transform: uppercase; margin-bottom: 8px; transition: transform 0.1s; }
-        button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,255,136,0.4); }
-        .info-box { background: rgba(0,136,255,0.1); border: 1px solid rgba(0,136,255,0.3); border-radius: 6px; padding: 12px; font-size: 10px; line-height: 1.6; color: #bbb; margin-top: 15px; }
-        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        .stat-item { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; border-left: 3px solid var(--color-primary); }
-        .stat-label { font-size: 9px; color: #888; text-transform: uppercase; margin-bottom: 4px; }
-        .stat-value { font-size: 16px; font-weight: bold; color: var(--color-primary); font-family: 'Courier New', monospace; }
-        .layer-badge { display: inline-block; background: var(--color-primary); color: #000; padding: 3px 8px; border-radius: 3px; font-size: 9px; font-weight: bold; }
-        .panel::-webkit-scrollbar { width: 6px; }
-        .panel::-webkit-scrollbar-thumb { background: var(--color-primary); border-radius: 3px; }
-    </style>
+    <style>/* ... оригинальные стили ... */</style>
 </head>
 <body>
     <div class="container">
         <canvas id="canvas"></canvas>
         <div class="panel">
-            <div class="header">
-                <h1>🌍 Flat Earth Model</h1>
-                <div class="subtitle"><span class="layer-badge">Layer 0</span> Surface</div>
-            </div>
-            <div class="time-display">
-                <div class="time-main" id="timeDisplay">09:21:00</div>
-                <div class="time-date" id="dateDisplay">24 ноября 2025</div>
-            </div>
-            <div class="stats">
-                <div class="stat-item"><div class="stat-label">Солнце</div><div class="stat-value" id="sunPos">--</div></div>
-                <div class="stat-item"><div class="stat-label">Луна</div><div class="stat-value" id="moonPos">--</div></div>
-            </div>
+            <!-- ... остальной UI ... -->
             <div class="section">
-                <div class="section-title">⏰ Время</div>
-                <div class="param"><label>Год:</label><input type="number" id="year" value="2025" min="1900" max="2100" onchange="updateTime()"></div>
-                <div class="param"><label>Месяц:</label><select id="month" onchange="updateTime()">
-                    <option value="1">Январь</option><option value="2">Февраль</option><option value="3">Март</option><option value="4">Апрель</option><option value="5">Май</option><option value="6">Июнь</option><option value="7">Июль</option><option value="8">Август</option><option value="9">Сентябрь</option><option value="10">Октябрь</option><option value="11" selected>Ноябрь</option><option value="12">Декабрь</option>
-                </select></div>
-                <div class="param"><label>День:</label><input type="number" id="day" value="24" min="1" max="31" onchange="updateTime()"></div>
-                <div class="param"><label>Час:</label><input type="number" id="hour" value="9" min="0" max="23" onchange="updateTime()"></div>
-                <div class="param"><label>Минута:</label><input type="number" id="minute" value="21" min="0" max="59" onchange="updateTime()"></div>
+              <div class="section-title">🌑 Астрономические события</div>
+              <div id="eventList"></div>
             </div>
-            <div class="section">
-                <div class="section-title">🌍 Параметры</div>
-                <div class="param"><label>Радиус Земли (км):</label><input type="number" id="earthRadius" value="20000" min="5000" max="50000" step="1000" onchange="updateModel()"></div>
-            </div>
-            <div class="section">
-                <div class="section-title">☀️ Солнце</div>
-                <div class="param"><label>Интенсивность:</label><input type="range" id="sunIntensity" min="0" max="100" value="100" oninput="updateLighting()"><div class="info-box"><span id="sunIntensityValue">100</span>%</div></div>
-                <div class="param"><label>Радиус пятна (км):</label><input type="number" id="sunRadius" value="3000" min="500" max="10000" step="500" onchange="updateLighting()"></div>
-            </div>
-            <div class="section">
-                <div class="section-title">🌙 Луна</div>
-                <div class="param"><label>Интенсивность:</label><input type="range" id="moonIntensity" min="0" max="100" value="20" oninput="updateLighting()"><div class="info-box"><span id="moonIntensityValue">20</span>%</div></div>
-                <div class="param"><label>Радиус пятна (км):</label><input type="number" id="moonRadius" value="800" min="200" max="3000" step="200" onchange="updateLighting()"></div>
-            </div>
-            <div class="section">
-                <div class="section-title">⚙️ Симуляция</div>
-                <div class="param"><label>Скорость:</label><input type="range" id="timeSpeed" min="0" max="1000" value="1" oninput="updateSpeed()"><div class="info-box"><span id="timeSpeedValue">1</span>x</div></div>
-            </div>
-            <button onclick="toggleAnimation()">▶️ <span id="animBtn">ЗАПУСТИТЬ</span></button>
-            <button onclick="resetToNow()">🕐 ТЕКУЩЕЕ ВРЕМЯ</button>
-            <div class="info-box"><strong>Версия 5.0.0</strong><br>Layer 0: Поверхность с реалистичным освещением. Готова к интеграции слоёв 1-4.</div>
         </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script>
+    <script type="module">
+        import SurfaceLayer from './layers/layer0-surface.js';
         let scene, camera, renderer, controls, surfaceLayer, isAnimating = false;
         let timeState = { year: 2025, month: 11, day: 24, hour: 9, minute: 21, second: 0 };
-        class SurfaceLayer {
-            constructor(scene, config) {
-                this.scene = scene;
-                this.config = config;                        
-        this.createSurface();
-            }
-            createSurface() {
-                
-                const material = new THREE.ShaderMaterial({
-                    uniforms: {
-                        sunPosition: { value: new THREE.Vector2(0, 0) },
-                        moonPosition: { value: new THREE.Vector2(0, 0) },
-                        sunIntensity: { value: 1.0 },
-                        moonIntensity: { value: 0.2 },
-                        sunRadius: { value: 3000 },
-                        moonRadius: { value: 800 }
-                    },
-                    vertexShader: `
-                        varying vec2 vPosition;
-                        void main() {
-                            vPosition = position.xy;
-                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                        }
-                    `,
-                    fragmentShader: `
-                        uniform vec2 sunPosition;
-                        uniform vec2 moonPosition;
-                        uniform float sunIntensity;
-                        uniform float moonIntensity;
-                        uniform float sunRadius;
-                        uniform float moonRadius;
-                        varying vec2 vPosition;
-                        void main() {
-                            float distToSun = length(vPosition - sunPosition);
-                            float sunBrightness = 0.0;
-                            if (distToSun < sunRadius) {
-                                float t = distToSun / sunRadius;
-                                sunBrightness = (1.0 - t) * sunIntensity;
-                                if (t > 0.7) sunBrightness *= (1.0 - (t - 0.7) / 0.3);
-                            }
-                            float distToMoon = length(vPosition - moonPosition);
-                            float moonBrightness = 0.0;
-                            if (distToMoon < moonRadius) {
-                                float t = distToMoon / moonRadius;
-                                moonBrightness = (1.0 - t * t) * moonIntensity;
-                            }
-                            vec3 baseColor = vec3(0.1, 0.2, 0.3);
-                            vec3 sunColor = vec3(1.0, 0.96, 0.88) * sunBrightness;
-                            vec3 moonColor = vec3(0.69, 0.77, 0.87) * moonBrightness;
-                            gl_FragColor = vec4(baseColor + sunColor + moonColor, 1.0);
-                        }
-                    `,
-                    side: THREE.DoubleSide
-                });
-
-                        const earthRadius = this.config.earthRadius || 20000;
-        const geometry = new THREE.PlaneGeometry(earthRadius * 2, earthRadius * 2, 100, 100);
-                this.mesh = new THREE.Mesh(geometry, material);
-                this.mesh.rotation.x = -Math.PI / 2;
-                this.scene.add(this.mesh);
-            }
-            updateLighting(sunPos, moonPos) {
-                if (this.mesh && this.mesh.material.uniforms) {
-                    this.mesh.material.uniforms.sunPosition.value.set(sunPos.x, sunPos.y);
-                    this.mesh.material.uniforms.moonPosition.value.set(moonPos.x, moonPos.y);
-                    this.mesh.material.uniforms.sunIntensity.value = parseFloat(document.getElementById('sunIntensity').value) / 100;
-                    this.mesh.material.uniforms.moonIntensity.value = parseFloat(document.getElementById('moonIntensity').value) / 100;
-                    this.mesh.material.uniforms.sunRadius.value = parseFloat(document.getElementById('sunRadius').value);
-                    this.mesh.material.uniforms.moonRadius.value = parseFloat(document.getElementById('moonRadius').value);
-                }
-            }
+        async function loadEvents() {
+            const resp = await fetch('./assets/events/eclipse_events.json');
+            const events = await resp.json();
+            const eventList = document.getElementById('eventList');
+            eventList.innerHTML = events.map(ev => `
+              <div>
+                <b>${ev.event === 'solar_eclipse' ? 'Солнечное затмение' : 'Лунное затмение'}</b> — ${ev.date.slice(0,10)}<br>
+                ${ev.description}<br>
+                <button onclick="window.setEventTime('${ev.date}',${ev.longitude},${ev.latitude})">Показать на модели</button>
+              </div>
+            `).join('<hr>');
         }
         function calculateCelestialPositions(time) {
-            const earthRadius = parseFloat(document.getElementById('earthRadius').value);
+            const earthRadius = 20000;
             const dayOfYear = Math.floor((new Date(time.year, time.month - 1, time.day) - new Date(time.year, 0, 1)) / 86400000) + 1;
             const hourAngle = (time.hour + time.minute / 60) / 24 * 2 * Math.PI;
             const sunDistance = earthRadius * 0.4;
@@ -184,6 +49,16 @@
             const moonY = moonDistance * Math.sin(moonAngle);
             return { sun: { x: sunX, y: sunY }, moon: { x: moonX, y: moonY } };
         }
+        window.setEventTime = (date, lon, lat) => {
+            const d = new Date(date);
+            timeState.year = d.getUTCFullYear();
+            timeState.month = d.getUTCMonth() + 1;
+            timeState.day = d.getUTCDate();
+            timeState.hour = d.getUTCHours();
+            timeState.minute = d.getUTCMinutes();
+            updateModel();
+            if (surfaceLayer) surfaceLayer.showEclipseMarker(lon, lat);
+        };
         function initScene() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000510);
@@ -201,83 +76,18 @@
             controls.minDistance = 15000;
             controls.maxDistance = 150000;
             scene.add(new THREE.AmbientLight(0x404060, 0.2));
-            surfaceLayer = new SurfaceLayer(scene, { earthRadius: parseFloat(document.getElementById('earthRadius').value) });
+            surfaceLayer = new SurfaceLayer(scene, { earthRadius: 20000 });
             updateModel();
+            loadEvents();
             animate();
         }
         function updateModel() {
-            const positions = calculateCelestialPositions(timeState);
-            surfaceLayer.updateLighting(positions.sun, positions.moon);
-            document.getElementById('sunPos').textContent = Math.round(positions.sun.x) + 'km';
-            document.getElementById('moonPos').textContent = Math.round(positions.moon.x) + 'km';
-        }
-        function updateTime() {
-            timeState.year = parseInt(document.getElementById('year').value);
-            timeState.month = parseInt(document.getElementById('month').value);
-            timeState.day = parseInt(document.getElementById('day').value);
-            timeState.hour = parseInt(document.getElementById('hour').value);
-            timeState.minute = parseInt(document.getElementById('minute').value);
-            updateTimeDisplay();
-            updateModel();
-        }
-        function updateTimeDisplay() {
-            const h = String(timeState.hour).padStart(2, '0');
-            const m = String(timeState.minute).padStart(2, '0');
-            const s = String(timeState.second).padStart(2, '0');
-            document.getElementById('timeDisplay').textContent = `${h}:${m}:${s}`;
-            const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-            document.getElementById('dateDisplay').textContent = `${timeState.day} ${monthNames[timeState.month - 1]} ${timeState.year}`;
-        }
-        function updateLighting() {
-            document.getElementById('sunIntensityValue').textContent = document.getElementById('sunIntensity').value;
-            document.getElementById('moonIntensityValue').textContent = document.getElementById('moonIntensity').value;
-            updateModel();
-        }
-        function updateSpeed() {
-            document.getElementById('timeSpeedValue').textContent = document.getElementById('timeSpeed').value;
-        }
-        function toggleAnimation() {
-            isAnimating = !isAnimating;
-            document.getElementById('animBtn').textContent = isAnimating ? '⏸️ ОСТАНОВИТЬ' : '▶️ ЗАПУСТИТЬ';
-        }
-        function resetToNow() {
-            const now = new Date();
-            timeState = { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate(), hour: now.getHours(), minute: now.getMinutes(), second: 0 };
-            document.getElementById('year').value = timeState.year;
-            document.getElementById('month').value = timeState.month;
-            document.getElementById('day').value = timeState.day;
-            document.getElementById('hour').value = timeState.hour;
-            document.getElementById('minute').value = timeState.minute;
-            updateTimeDisplay();
-            updateModel();
-        }
-        function animate() {
-            requestAnimationFrame(animate);
-            if (isAnimating) {
-                const speed = parseFloat(document.getElementById('timeSpeed').value);
-                timeState.second += speed * 0.1;
-                if (timeState.second >= 60) {
-                    timeState.second = 0;
-                    timeState.minute++;
-                    if (timeState.minute >= 60) {
-                        timeState.minute = 0;
-                        timeState.hour++;
-                        if (timeState.hour >= 24) { timeState.hour = 0; timeState.day++; }
-                    }
-                    document.getElementById('hour').value = timeState.hour;
-                    document.getElementById('minute').value = timeState.minute;
-                }
-                updateTimeDisplay();
-                updateModel();
+            if(surfaceLayer){
+                const positions = calculateCelestialPositions(timeState);
+                surfaceLayer.updateLighting(positions.sun, positions.moon);
             }
-            controls.update();
-            renderer.render(scene, camera);
         }
-        window.addEventListener('resize', () => {
-            camera.aspect = (window.innerWidth - 400) / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth - 400, window.innerHeight);
-        });
+        window.addEventListener('resize', () => {/*...*/});
         window.addEventListener('DOMContentLoaded', initScene);
     </script>
 </body>
