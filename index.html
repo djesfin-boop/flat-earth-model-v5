@@ -101,7 +101,7 @@
         class SurfaceLayer {
             constructor(scene, config) {
                 this.scene = scene;
-                fig = config;                        
+                this.config = config;                        
         this.createSurface();
             }
             createSurface() {
@@ -152,6 +152,9 @@
                     `,
                     side: THREE.DoubleSide
                 });
+
+                        const earthRadius = this.config.earthRadius || 20000;
+        const geometry = new THREE.PlaneGeometry(earthRadius * 2, earthRadius * 2, 100, 100);
                 this.mesh = new THREE.Mesh(geometry, material);
                 this.mesh.rotation.x = -Math.PI / 2;
                 this.scene.add(this.mesh);
