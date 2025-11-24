@@ -1,7 +1,7 @@
 /**
  * Layer 0: Surface Layer - Flat Earth Model v5
- * Координатная сетка, карта Глиссона и динамическая реалистичная маска фазы Луны как шейдер
- * @version 5.3.0 (маска)
+ * Добавлены визуальные маркеры затмений с учётом координатной сети
+ * @version 5.4.0
  */
 
 class SurfaceLayer {
@@ -13,6 +13,7 @@ class SurfaceLayer {
         this.sunPosition = { x: 0, y: 0 };
         this.moonPosition = { x: 0, y: 0 };
         this.moonPhase = 0;
+        this.eclipseMarker = null;
         this.createSurface();
         this.createCoordGrid();
         this.createMoonPhaseSpot();
@@ -67,14 +68,13 @@ class SurfaceLayer {
         this.scene.add(this.gridGroup);
     }
     createMoonPhaseSpot() {
-        // Рисуем круг который затемняется маской через custom fragmentShader
+        // Рисуем круг, маска — custom fragmentShader
         const radius = 800;
         const geometry = new THREE.CircleGeometry(radius, 128);
-        // Шейдер: выводит освещённую часть круга в зависимости от нормали/фазы
         const material = new THREE.ShaderMaterial({
             transparent: true,
             uniforms: {
-                phase: { value: 0 }, // -1 = новолуние, 0 = полнолуние, 1 = новолуние
+                phase: { value: 0 },
                 color: { value: new THREE.Color(0xc1caf6) },
                 opacity: { value: 0.21 }
             },
@@ -87,9 +87,8 @@ class SurfaceLayer {
                 void main() {
                     float r = length(vUv);
                     if (r > 1.0) discard;
-                    // Реалистичная динамика: маска фазы синусоидально пересекает круг
                     float angle = atan(vUv.y, vUv.x);
-                    float phaseShift = phase * 3.1415926; // от -pi до pi
+                    float phaseShift = phase * 3.1415926;
                     float mask = (cos(angle - phaseShift) + 1.0) / 2.0;
                     float thresh = 0.5 + 0.5 * phase;
                     float visible = step(mask, thresh);
@@ -102,19 +101,37 @@ class SurfaceLayer {
         this.scene.add(this.moonPhaseMesh);
     }
     updateLighting(sunPos, moonPos) {
-        // Положение диска
+        // Обновление положения Луны
         if(this.moonPhaseMesh && moonPos) {
             this.moonPhaseMesh.position.set(moonPos.x, 21, moonPos.y);
         }
-        // Расчет фазы: угол между вектором Земля->Солнце и Земля->Луна
+        // Расчет фазы
         const sx = sunPos.x, sy = sunPos.y;
         const mx = moonPos.x, my = moonPos.y;
         const l_s_dot = (sx * mx + sy * my) / (Math.sqrt(sx * sx + sy * sy) * Math.sqrt(mx * mx + my * my));
-        let phase = Math.acos(Math.max(-1, Math.min(1, l_s_dot))) / Math.PI; // [0,1]
-        phase = Math.cos(phase * Math.PI); // (-1=нов, 0=полн, 1=нов)
+        let phase = Math.acos(Math.max(-1, Math.min(1, l_s_dot))) / Math.PI;
+        phase = Math.cos(phase * Math.PI);
         if(this.moonPhaseMesh && this.moonPhaseMesh.material.uniforms) {
             this.moonPhaseMesh.material.uniforms.phase.value = phase;
         }
+    }
+    showEclipseMarker(lon, lat) {
+        // Удаляем предыдущий маркер
+        if (this.eclipseMarker) {
+            this.scene.remove(this.eclipseMarker);
+        }
+        // широта/долгота в x/y (азимутальная)
+        const r = this.config.earthRadius;
+        const phi = (90 - lat) * Math.PI / 180; // до север.полюса
+        const theta = lon * Math.PI / 180;
+        const x = r * Math.sin(phi) * Math.sin(theta);
+        const y = r * Math.sin(phi) * Math.cos(theta);
+        const markerGeometry = new THREE.RingGeometry(550, 800, 64);
+        const markerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.4 });
+        this.eclipseMarker = new THREE.Mesh(markerGeometry, markerMaterial);
+        this.eclipseMarker.position.set(x, 22, y);
+        this.eclipseMarker.rotation.x = -Math.PI / 2;
+        this.scene.add(this.eclipseMarker);
     }
 }
 export default SurfaceLayer;
