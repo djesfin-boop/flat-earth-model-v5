@@ -1,7 +1,7 @@
 /**
  * Layer 0: Surface Layer - Flat Earth Model v5
- * Координатная сетка, карта Глиссона и динамическое освещение пятнами Солнца/Луны поверх проекции
- * @version 5.2.0 (сет + пятна поверх)
+ * Координатная сетка, карта Глиссона и динамическая реалистичная маска фазы Луны как шейдер
+ * @version 5.3.0 (маска)
  */
 
 class SurfaceLayer {
@@ -10,13 +10,12 @@ class SurfaceLayer {
         this.config = config;
         this.mesh = null;
         this.gridGroup = new THREE.Group();
-        this.sunSpot = null;
-        this.moonSpot = null;
         this.sunPosition = { x: 0, y: 0 };
         this.moonPosition = { x: 0, y: 0 };
+        this.moonPhase = 0;
         this.createSurface();
         this.createCoordGrid();
-        this.createLightingSpots();
+        this.createMoonPhaseSpot();
     }
     createSurface() {
         const geometry = new THREE.CircleGeometry(this.config.earthRadius, 512);
@@ -67,33 +66,55 @@ class SurfaceLayer {
         }
         this.scene.add(this.gridGroup);
     }
-    createLightingSpots() {
-        // Имитация световых пятен простыми градиентными Mesh (Surface + alpha)
-        const r = this.config.earthRadius;
-        // Солнце
-        let sunGeo = new THREE.CircleGeometry(3000, 96);
-        let sunMat = new THREE.MeshBasicMaterial({ color: 0xffefbb, transparent: true, opacity: 0.45 });
-        this.sunSpot = new THREE.Mesh(sunGeo, sunMat);
-        this.sunSpot.position.set(0, 20, 0);
-        this.sunSpot.rotation.x = -Math.PI / 2;
-        this.scene.add(this.sunSpot);
-        // Луна
-        let moonGeo = new THREE.CircleGeometry(800, 64);
-        let moonMat = new THREE.MeshBasicMaterial({ color: 0xc1caf6, transparent: true, opacity: 0.20 });
-        this.moonSpot = new THREE.Mesh(moonGeo, moonMat);
-        this.moonSpot.position.set(0, 20, 0);
-        this.moonSpot.rotation.x = -Math.PI / 2;
-        this.scene.add(this.moonSpot);
+    createMoonPhaseSpot() {
+        // Рисуем круг который затемняется маской через custom fragmentShader
+        const radius = 800;
+        const geometry = new THREE.CircleGeometry(radius, 128);
+        // Шейдер: выводит освещённую часть круга в зависимости от нормали/фазы
+        const material = new THREE.ShaderMaterial({
+            transparent: true,
+            uniforms: {
+                phase: { value: 0 }, // -1 = новолуние, 0 = полнолуние, 1 = новолуние
+                color: { value: new THREE.Color(0xc1caf6) },
+                opacity: { value: 0.21 }
+            },
+            vertexShader: `varying vec2 vUv; void main() { vUv = uv * 2.0 - 1.0; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+            fragmentShader: `
+                uniform float phase;
+                uniform vec3 color;
+                uniform float opacity;
+                varying vec2 vUv;
+                void main() {
+                    float r = length(vUv);
+                    if (r > 1.0) discard;
+                    // Реалистичная динамика: маска фазы синусоидально пересекает круг
+                    float angle = atan(vUv.y, vUv.x);
+                    float phaseShift = phase * 3.1415926; // от -pi до pi
+                    float mask = (cos(angle - phaseShift) + 1.0) / 2.0;
+                    float thresh = 0.5 + 0.5 * phase;
+                    float visible = step(mask, thresh);
+                    gl_FragColor = vec4(color, opacity * visible * (1.0 - r));
+                }`
+        });
+        this.moonPhaseMesh = new THREE.Mesh(geometry, material);
+        this.moonPhaseMesh.position.set(0, 21, 0);
+        this.moonPhaseMesh.rotation.x = -Math.PI / 2;
+        this.scene.add(this.moonPhaseMesh);
     }
     updateLighting(sunPos, moonPos) {
-        if (this.sunSpot && sunPos) {
-            this.sunSpot.position.set(sunPos.x, 20, sunPos.y);
+        // Положение диска
+        if(this.moonPhaseMesh && moonPos) {
+            this.moonPhaseMesh.position.set(moonPos.x, 21, moonPos.y);
         }
-        if (this.moonSpot && moonPos) {
-            this.moonSpot.position.set(moonPos.x, 20, moonPos.y);
+        // Расчет фазы: угол между вектором Земля->Солнце и Земля->Луна
+        const sx = sunPos.x, sy = sunPos.y;
+        const mx = moonPos.x, my = moonPos.y;
+        const l_s_dot = (sx * mx + sy * my) / (Math.sqrt(sx * sx + sy * sy) * Math.sqrt(mx * mx + my * my));
+        let phase = Math.acos(Math.max(-1, Math.min(1, l_s_dot))) / Math.PI; // [0,1]
+        phase = Math.cos(phase * Math.PI); // (-1=нов, 0=полн, 1=нов)
+        if(this.moonPhaseMesh && this.moonPhaseMesh.material.uniforms) {
+            this.moonPhaseMesh.material.uniforms.phase.value = phase;
         }
-        // Можно добавить динамику прозрачности по фазе/интенсивности
     }
-    // остальные методы без изменений ...
 }
 export default SurfaceLayer;
