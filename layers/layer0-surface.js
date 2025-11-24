@@ -31,41 +31,46 @@ class SurfaceLayer {
             this.scene.add(this.mesh);
         });
     }
-    createCoordGrid() {
-        const r = this.config.earthRadius;
-        const meridians = 24; // каждые 15°
-        const parallels = 6; // каждые 2000км
-        this.gridGroup.clear();
-        // Меридианы
-        for (let i = 0; i < meridians; i++) {
-            const angle = (i / meridians) * Math.PI * 2;
-            const x1 = Math.cos(angle) * r;
-            const y1 = Math.sin(angle) * r;
-            const material = new THREE.LineBasicMaterial({ color: 0x00ff88, linewidth: 2 });
-            const points = [new THREE.Vector3(0, 0.1, 0), new THREE.Vector3(x1, 0.1, y1)];
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const line = new THREE.Line(geometry, material);
-            line.rotation.x = -Math.PI / 2;
-            this.gridGroup.add(line);
-        }
-        // Параллели
-        for (let i = 1; i < parallels; i++) {
-            const pr = r * (i / parallels);
-            const material = new THREE.LineBasicMaterial({ color: 0x0088ff, linewidth: 1 });
-            const circlePoints = [];
-            for (let j = 0; j <= 128; j++) {
-                const a = (j / 128) * Math.PI * 2;
-                const x = Math.cos(a) * pr;
-                const y = Math.sin(a) * pr;
-                circlePoints.push(new THREE.Vector3(x, 0.11, y));
-            }
-            const circleGeo = new THREE.BufferGeometry().setFromPoints(circlePoints);
-            const circle = new THREE.Line(circleGeo, material);
-            circle.rotation.x = -Math.PI / 2;
-            this.gridGroup.add(circle);
-        }
-        this.scene.add(this.gridGroup);
+createCoordGrid() {
+    const r = this.config.earthRadius;
+    const meridians = 24; // каждые 15°
+    const parallels = 6; // число линий широты (кроме север.полюса)
+    this.gridGroup.clear();
+    // Меридианы
+    for (let i = 0; i < meridians; i++) {
+        const angle = (i / meridians) * Math.PI * 2;
+        const x1 = Math.sin(angle) * r;
+        const y1 = Math.cos(angle) * r;
+        const material = new THREE.LineBasicMaterial({ color: 0x00ff88, linewidth: 2 });
+        const points = [
+            new THREE.Vector3(0, 0.1, 0),
+            new THREE.Vector3(x1, 0.1, y1)
+        ];
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const line = new THREE.Line(geometry, material);
+        line.rotation.x = -Math.PI / 2;
+        this.gridGroup.add(line);
     }
+    // Параллели (широты)
+    for (let i = 1; i <= parallels; i++) {
+        const phi = 90 - (i * (90 / parallels));
+        const pr = r * (1 - (phi / 90)); // r = R*(1-phi/90)
+        const material = new THREE.LineBasicMaterial({ color: 0x0088ff, linewidth: 1 });
+        const circlePoints = [];
+        for (let j = 0; j <= 128; j++) {
+            const a = (j / 128) * Math.PI * 2;
+            const x = Math.sin(a) * pr;
+            const y = Math.cos(a) * pr;
+            circlePoints.push(new THREE.Vector3(x, 0.11, y));
+        }
+        const circleGeo = new THREE.BufferGeometry().setFromPoints(circlePoints);
+        const circle = new THREE.Line(circleGeo, material);
+        circle.rotation.x = -Math.PI / 2;
+        this.gridGroup.add(circle);
+    }
+    this.scene.add(this.gridGroup);
+}
+
     createMoonPhaseSpot() {
         // Рисуем круг, маска — custom fragmentShader
         const radius = 800;
