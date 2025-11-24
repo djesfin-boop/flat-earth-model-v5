@@ -17,6 +17,20 @@
         import SurfaceLayer from './layers/layer0-surface.js';
         let scene, camera, renderer, controls, surfaceLayer, isAnimating = false;
         let timeState = { year: 2025, month: 11, day: 24, hour: 9, minute: 21, second: 0 };
+        function calculateCelestialPositions(time) {
+            const earthRadius = 20000; // Фикс для Layer 0 демо
+            const dayOfYear = Math.floor((new Date(time.year, time.month - 1, time.day) - new Date(time.year, 0, 1)) / 86400000) + 1;
+            const hourAngle = (time.hour + time.minute / 60) / 24 * 2 * Math.PI;
+            const sunDistance = earthRadius * 0.4;
+            const sunX = sunDistance * Math.cos(hourAngle);
+            const sunY = sunDistance * Math.sin(hourAngle);
+            const moonPhaseShift = dayOfYear * 0.0335;
+            const moonAngle = hourAngle + moonPhaseShift;
+            const moonDistance = earthRadius * 0.3;
+            const moonX = moonDistance * Math.cos(moonAngle);
+            const moonY = moonDistance * Math.sin(moonAngle);
+            return { sun: { x: sunX, y: sunY }, moon: { x: moonX, y: moonY } };
+        }
         function initScene() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000510);
@@ -34,12 +48,16 @@
             controls.minDistance = 15000;
             controls.maxDistance = 150000;
             scene.add(new THREE.AmbientLight(0x404060, 0.2));
-            surfaceLayer = new SurfaceLayer(scene, { earthRadius: parseFloat(document.getElementById('earthRadius').value) });
+            surfaceLayer = new SurfaceLayer(scene, { earthRadius: 20000 });
             updateModel();
             animate();
         }
-        function updateModel() { if(surfaceLayer){surfaceLayer.updateLighting();} }
-        /* остальные методы... */
+        function updateModel() {
+            if(surfaceLayer){
+                const positions = calculateCelestialPositions(timeState);
+                surfaceLayer.updateLighting(positions.sun, positions.moon);
+            }
+        }
         window.addEventListener('resize', () => {/*...*/});
         window.addEventListener('DOMContentLoaded', initScene);
     </script>
