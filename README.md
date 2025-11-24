@@ -46,7 +46,7 @@ flat-earth-model-v5/
 
 ```bash
 # Клонировать репозиторий
-git clone https://github.com/YOUR_USERNAME/flat-earth-model-v5.git
+git clone https://github.com/djesfin-boop/flat-earth-model-v5.git
 cd flat-earth-model-v5
 
 # Открыть в браузере
@@ -59,7 +59,7 @@ python -m http.server 8000
 
 ### Онлайн версия
 
-🌐 [Живая демонстрация на GitHub Pages](https://YOUR_USERNAME.github.io/flat-earth-model-v5/)
+🌐 [Живая демонстрация на GitHub Pages](https://djesfin-boop.github.io/flat-earth-model-v5/)
 
 ## 📖 Документация
 
@@ -229,7 +229,7 @@ surfaceLayer.exportState() → {sunPosition, moonPosition, time, lightingMap}
 
 **Flat Earth Model Development Team**
 
-- GitHub: [@YOUR_USERNAME](https://github.com/YOUR_USERNAME)
+- GitHub: [@djesfin-boop](https://github.com/djesfin-boop)
 - Email: your.email@example.com
 
 ## 🌟 Благодарности
@@ -242,7 +242,7 @@ surfaceLayer.exportState() → {sunPosition, moonPosition, time, lightingMap}
 
 Если у тебя есть вопросы или проблемы:
 
-1. Проверь [Issues](https://github.com/YOUR_USERNAME/flat-earth-model-v5/issues)
+1. Проверь [Issues](https://github.com/djesfin-boop/flat-earth-model-v5/issues)
 2. Создай новый Issue
 3. Напиши на email: your.email@example.com
 
