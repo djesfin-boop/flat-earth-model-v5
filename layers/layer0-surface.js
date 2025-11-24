@@ -22,8 +22,7 @@ class SurfaceLayer {
         const geometry = new THREE.CircleGeometry(this.config.earthRadius, 512);
         // Текстура Глиссона
         const loader = new THREE.TextureLoader();
-        loader.load('assets/textures/azimuthal_map.png', texture => {
-            texture.wrapS = THREE.ClampToEdgeWrapping;
+        loader.load('assets/azimuthal_map.png', texture => {            texture.wrapS = THREE.ClampToEdgeWrapping;
             texture.wrapT = THREE.ClampToEdgeWrapping;
             texture.minFilter = THREE.LinearFilter;
             const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
