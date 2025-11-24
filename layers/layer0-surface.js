@@ -1,7 +1,7 @@
 /**
  * Layer 0: Surface Layer - Flat Earth Model v5
- * Реалистичное освещение поверхности с пятнами от Солнца и Луны и координатная сетка
- * @version 5.1.0 (сетка и накладываемая карта)
+ * Координатная сетка, карта Глиссона и динамическое освещение пятнами Солнца/Луны поверх проекции
+ * @version 5.2.0 (сет + пятна поверх)
  */
 
 class SurfaceLayer {
@@ -10,10 +10,13 @@ class SurfaceLayer {
         this.config = config;
         this.mesh = null;
         this.gridGroup = new THREE.Group();
+        this.sunSpot = null;
+        this.moonSpot = null;
         this.sunPosition = { x: 0, y: 0 };
         this.moonPosition = { x: 0, y: 0 };
         this.createSurface();
-        this.createCoordGrid(); // <--- новый метод для сетки
+        this.createCoordGrid();
+        this.createLightingSpots();
     }
     createSurface() {
         const geometry = new THREE.CircleGeometry(this.config.earthRadius, 512);
@@ -64,8 +67,33 @@ class SurfaceLayer {
         }
         this.scene.add(this.gridGroup);
     }
+    createLightingSpots() {
+        // Имитация световых пятен простыми градиентными Mesh (Surface + alpha)
+        const r = this.config.earthRadius;
+        // Солнце
+        let sunGeo = new THREE.CircleGeometry(3000, 96);
+        let sunMat = new THREE.MeshBasicMaterial({ color: 0xffefbb, transparent: true, opacity: 0.45 });
+        this.sunSpot = new THREE.Mesh(sunGeo, sunMat);
+        this.sunSpot.position.set(0, 20, 0);
+        this.sunSpot.rotation.x = -Math.PI / 2;
+        this.scene.add(this.sunSpot);
+        // Луна
+        let moonGeo = new THREE.CircleGeometry(800, 64);
+        let moonMat = new THREE.MeshBasicMaterial({ color: 0xc1caf6, transparent: true, opacity: 0.20 });
+        this.moonSpot = new THREE.Mesh(moonGeo, moonMat);
+        this.moonSpot.position.set(0, 20, 0);
+        this.moonSpot.rotation.x = -Math.PI / 2;
+        this.scene.add(this.moonSpot);
+    }
     updateLighting(sunPos, moonPos) {
-        // логика освещения без изменений, если mesh есть
+        if (this.sunSpot && sunPos) {
+            this.sunSpot.position.set(sunPos.x, 20, sunPos.y);
+        }
+        if (this.moonSpot && moonPos) {
+            this.moonSpot.position.set(moonPos.x, 20, moonPos.y);
+        }
+        // Можно добавить динамику прозрачности по фазе/интенсивности
     }
     // остальные методы без изменений ...
 }
+export default SurfaceLayer;
