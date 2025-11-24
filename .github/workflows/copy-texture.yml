@@ -3,6 +3,9 @@ name: Copy Azimuthal Map from v2
 on:
   workflow_dispatch:
 
+  permissions:
+  contents: write
+
 jobs:
   copy-texture:
     runs-on: ubuntu-latest
