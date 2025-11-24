@@ -57,7 +57,7 @@
             timeState.hour = d.getUTCHours();
             timeState.minute = d.getUTCMinutes();
             updateModel();
-            // В будущем добавить выделение на диске для событий!
+            if (surfaceLayer) surfaceLayer.showEclipseMarker(lon, lat);
         };
         function initScene() {
             scene = new THREE.Scene();
