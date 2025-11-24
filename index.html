@@ -98,16 +98,14 @@
     <script>
         let scene, camera, renderer, controls, surfaceLayer, isAnimating = false;
         let timeState = { year: 2025, month: 11, day: 24, hour: 9, minute: 21, second: 0 };
-            <script src="layers/layer0-surface.js"></script>
         class SurfaceLayer {
             constructor(scene, config) {
                 this.scene = scene;
-                this.config = config;
-                        // SurfaceLayer класс теперь подключается из layers/layer0-surface.js
+                fig = config;                        
         this.createSurface();
             }
             createSurface() {
-                const geometry = new THREE.CircleGeometry(this.config.earthRadius, 512);
+                
                 const material = new THREE.ShaderMaterial({
                     uniforms: {
                         sunPosition: { value: new THREE.Vector2(0, 0) },
