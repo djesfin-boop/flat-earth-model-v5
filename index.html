@@ -227,18 +227,31 @@ isPlaying = !isPlaying;
 document.getElementById('playBtn').textContent = isPlaying ? '⏸ Пауза' : '▶ Пуск';
 };
 
-window.resetTime = () => {
-timeState = { year: 2025, month: 11, day: 25, hour: 12, minute: 0, second: 0 };
-document.getElementById('year').value = 2025;
-document.getElementById('month').value = 11;
-document.getElementById('day').value = 25;
-document.getElementById('hour').value = 12;
-document.getElementById('minute').value = 0;
-updateModel();
-updateTimeDisplay();
-};
+window.togglePlay = () => {
+            isPlaying = !isPlaying;
+            document.getElementById('playBtn').textContent = isPlaying ? '⏸ Пауза' : '▶ Пуск';
+        };
 
-function initScene() {
+        window.resetTime = () => {
+            timeState = { year: 2025, month: 11, day: 25, hour: 12, minute: 0, second: 0 };
+            document.getElementById('year').value = 2025;
+            document.getElementById('month').value = 11;
+            document.getElementById('day').value = 25;
+            document.getElementById('hour').value = 12;
+            document.getElementById('minute').value = 0;
+            updateModel();
+            updateTimeDisplay();
+        };
+
+        window.toggleGrid = () => {
+            if (gridLayer) {
+                const enabled = gridLayer.toggleGrid();
+                const btn = event.target;
+                btn.style.opacity = enabled ? 1.0 : 0.6;
+            }
+        };
+
+        function initScene() {
 scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000510);
 scene.fog = new THREE.Fog(0x000510, 100000, 300000);
