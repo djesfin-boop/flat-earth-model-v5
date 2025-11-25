@@ -1,9 +1,9 @@
 /**
- * Layer 0: Surface Layer - Flat Earth Model v6.2
- * Реалистичное косинусное освещение в азимутальной проекции
- * - Точный расчёт зенитного угла для каждой точки
- * - Круглые (не деформированные) световые пятна Солнца и Луны
- * - Плавное затухание по косинусному закону
+ * Layer 0: Surface Layer - Flat Earth Model v6.3
+ * Проекция Глисона (равнорасстояний азимутальная)
+ * - Яркие, ярко выраженные световые пятна (Солнце + Луна)
+ * - Точный косинусный расчёт зенитного угла
+ * - Высокий контраст день/ночь
  */
 
 class SurfaceLayer {
@@ -47,10 +47,10 @@ class SurfaceLayer {
                 sunPosition:    { value: new THREE.Vector2(0, 0) },
                 moonPosition:   { value: new THREE.Vector2(0, 0) },
                 earthRadius:    { value: this.config.earthRadius },
-                sunColor:       { value: new THREE.Color(0xffffcc) },
-                moonColor:      { value: new THREE.Color(0xaabbff) },
-                sunBrightness:  { value: 1.0 },
-                moonBrightness: { value: 0.15 },
+                sunColor:       { value: new THREE.Color(0xffff88) },    // ярко-жёлтое
+                moonColor:      { value: new THREE.Color(0x88ddff) },    // ярко-голубое
+                sunBrightness:  { value: 1.2 },
+                moonBrightness: { value: 0.25 },
                 moonPhase:      { value: 0.5 }
             },
             vertexShader: `
@@ -72,47 +72,36 @@ class SurfaceLayer {
 
                 varying vec2 vPos;
 
-                const float sunHeight  = 5000.0;   // высота солнца над плоскостью
-                const float moonHeight = 4000.0;   // высота луны над плоскостью
+                const float sunHeight  = 5000.0;
+                const float moonHeight = 4000.0;
 
                 void main() {
-                    // Точка на плоскости
                     vec2 p = vPos;
 
                     // ========== СОЛНЦЕ ==========
-                    // Расстояние от проекции солнца до текущей точки на плоскости
                     vec2 toSun = p - sunPosition;
                     float distSun = length(toSun);
-                    
-                    // Расстояние в 3D (учитывая высоту солнца)
                     float r3dSun = sqrt(distSun * distSun + sunHeight * sunHeight);
-                    
-                    // Косинус зенитного угла (угол между вертикалью и лучом от солнца)
                     float cosSun = sunHeight / r3dSun;
                     
-                    // Яркость по косинусному закону (max при cosSun=1, min при cosSun=0)
-                    float sunBright = max(0.0, cosSun);
-                    sunBright = pow(sunBright, 1.2);  // немного усилить контраст
+                    // Усилить контраст: cos^2 вместо cos
+                    float sunBright = max(0.0, cosSun * cosSun);
                     
                     // ========== ЛУНА ==========
                     vec2 toMoon = p - moonPosition;
                     float distMoon = length(toMoon);
                     float r3dMoon = sqrt(distMoon * distMoon + moonHeight * moonHeight);
                     float cosMoon = moonHeight / r3dMoon;
-                    float moonBright = max(0.0, cosMoon);
-                    moonBright = pow(moonBright, 1.2);
-                    
-                    // Фаза луны
+                    float moonBright = max(0.0, cosMoon * cosMoon);
                     moonBright *= moonBrightness * moonPhase;
                     
                     // ========== ИТОГОВОЙ ЦВЕТ ==========
-                    // Луна видна только там, где солнце слабое
                     vec3 col = sunColor * (sunBright * sunBrightness);
                     col += moonColor * moonBright;
                     
-                    // Альфа-канал: затемнение ночи (там, где нет ни солнца, ни луны)
+                    // Альфа: яркие пятна, темная ночь
                     float light = sunBright + moonBright;
-                    float alpha = 0.9 - light * 0.85;  // ночь тёмная (alpha=0.9), день прозрачный (alpha=0.05)
+                    float alpha = 0.95 - light * 0.90;  // ночь очень тёмная (alpha=0.95), день светлый (alpha=0.05)
                     
                     gl_FragColor = vec4(col, alpha);
                 }
