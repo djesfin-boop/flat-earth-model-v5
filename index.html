@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flat Earth Model v5 - Layer 0: Surface</title>
+    <title>Flat Earth Model v6 - Живое освещение</title>
     <style>
         * {
             margin: 0;
@@ -24,7 +24,7 @@
             display: block;
         }
         .panel {
-            width: 400px;
+            width: 420px;
             background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
             color: #e0e0e0;
             padding: 20px;
@@ -94,6 +94,7 @@
             cursor: pointer;
             transition: all 0.3s;
             margin-top: 10px;
+            font-size: 14px;
         }
         .btn:hover {
             transform: translateY(-2px);
@@ -102,8 +103,42 @@
         .btn:active {
             transform: translateY(0);
         }
+        .btn-secondary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .speed-control input[type="range"] {
+            flex: 1;
+        }
+        .speed-label {
+            min-width: 60px;
+            text-align: center;
+            font-weight: bold;
+            color: #4ecdc4;
+        }
+        #currentTime {
+            text-align: center;
+            padding: 10px;
+            background: rgba(78, 205, 196, 0.1);
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #4ecdc4;
+        }
         #eventList {
-            max-height: 300px;
+            max-height: 250px;
             overflow-y: auto;
         }
         #eventList > div {
@@ -138,10 +173,26 @@
     <div class="container">
         <canvas id="canvas"></canvas>
         <div class="panel">
-            <h1>🌍 Flat Earth Model v5</h1>
+            <h1>🌍 Flat Earth Model v6</h1>
             
             <div class="section">
-                <div class="section-title">⏰ Время и дата</div>
+                <div class="section-title">⏰ Текущее время</div>
+                <div id="currentTime">--:--:--</div>
+                
+                <div class="btn-group">
+                    <button class="btn" id="playBtn" onclick="togglePlay()">▶ Пуск</button>
+                    <button class="btn btn-secondary" onclick="resetTime()">🔄 Сброс</button>
+                </div>
+                
+                <div class="speed-control">
+                    <label style="min-width: 90px; color: #b0b0b0;">Скорость:</label>
+                    <input type="range" id="speedSlider" min="1" max="10000" value="60" step="1">
+                    <span class="speed-label" id="speedLabel">60x</span>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">📅 Установить время</div>
                 <div class="control-group">
                     <label>Год</label>
                     <input type="number" id="year" value="2025" min="2000" max="2100">
@@ -153,7 +204,7 @@
                     </div>
                     <div class="control-group">
                         <label>День</label>
-                        <input type="number" id="day" value="24" min="1" max="31">
+                        <input type="number" id="day" value="25" min="1" max="31">
                     </div>
                 </div>
                 <div class="time-controls">
@@ -166,11 +217,11 @@
                         <input type="number" id="minute" value="0" min="0" max="59">
                     </div>
                 </div>
-                <button class="btn" onclick="updateTimeFromInputs()">Обновить время</button>
+                <button class="btn" onclick="updateTimeFromInputs()">Применить</button>
             </div>
 
             <div class="section">
-                <div class="section-title">🌑 Астрономические события</div>
+                <div class="section-title">🌑 События затмений</div>
                 <div id="eventList">Загрузка...</div>
             </div>
         </div>
@@ -182,9 +233,12 @@
         import SurfaceLayer from './layers/layer0-surface.js';
 
         let scene, camera, renderer, controls, surfaceLayer;
-        let timeState = { year: 2025, month: 11, day: 24, hour: 12, minute: 0, second: 0 };
+        let timeState = { year: 2025, month: 11, day: 25, hour: 12, minute: 0, second: 0 };
+        let isPlaying = false;
+        let timeSpeed = 60; // скорость в секундах за кадр
+        let lastFrameTime = Date.now();
 
-        // Загрузка событий затмений
+        // Загрузка событий
         async function loadEvents() {
             try {
                 const resp = await fetch('./assets/events/eclipse_events.json');
@@ -195,12 +249,11 @@
                         <b>${ev.event === 'solar_eclipse' ? 'Солнечное затмение' : 'Лунное затмение'}</b><br>
                         ${ev.date.slice(0,10)}<br>
                         ${ev.description}<br>
-                        <button onclick="window.setEventTime('${ev.date}',${ev.longitude},${ev.latitude})"> Показать на модели</button>
+                        <button onclick="window.setEventTime('${ev.date}',${ev.longitude},${ev.latitude})"> Показать</button>
                     </div>
                 `).join('<hr>');
             } catch (error) {
-                document.getElementById('eventList').innerHTML = 'Ошибка загрузки событий';
-                console.error('Error loading events:', error);
+                document.getElementById('eventList').innerHTML = 'Ошибка загрузки';
             }
         }
 
@@ -208,7 +261,7 @@
         function calculateCelestialPositions(time) {
             const earthRadius = 20000;
             const dayOfYear = Math.floor((new Date(time.year, time.month - 1, time.day) - new Date(time.year, 0, 1)) / 86400000) + 1;
-            const hourAngle = (time.hour + time.minute / 60) / 24 * 2 * Math.PI;
+            const hourAngle = ((time.hour + time.minute / 60 + time.second / 3600) / 24) * 2 * Math.PI;
             
             const sunDistance = earthRadius * 0.4;
             const sunX = sunDistance * Math.cos(hourAngle);
@@ -223,6 +276,15 @@
             return { sun: { x: sunX, y: sunY }, moon: { x: moonX, y: moonY } };
         }
 
+        // Обновление отображения времени
+        function updateTimeDisplay() {
+            const h = String(timeState.hour).padStart(2, '0');
+            const m = String(timeState.minute).padStart(2, '0');
+            const s = String(Math.floor(timeState.second)).padStart(2, '0');
+            document.getElementById('currentTime').textContent = 
+                `${timeState.year}-${String(timeState.month).padStart(2, '0')}-${String(timeState.day).padStart(2, '0')} ${h}:${m}:${s}`;
+        }
+
         // Установка времени события
         window.setEventTime = (date, lon, lat) => {
             const d = new Date(date);
@@ -231,8 +293,8 @@
             timeState.day = d.getUTCDate();
             timeState.hour = d.getUTCHours();
             timeState.minute = d.getUTCMinutes();
+            timeState.second = 0;
             
-            // Обновление полей ввода
             document.getElementById('year').value = timeState.year;
             document.getElementById('month').value = timeState.month;
             document.getElementById('day').value = timeState.day;
@@ -240,37 +302,64 @@
             document.getElementById('minute').value = timeState.minute;
             
             updateModel();
+            updateTimeDisplay();
             if (surfaceLayer) surfaceLayer.showEclipseMarker(lon, lat);
         };
 
-        // Обновление времени из полей ввода
+        // Обновление из полей
         window.updateTimeFromInputs = () => {
             timeState.year = parseInt(document.getElementById('year').value);
             timeState.month = parseInt(document.getElementById('month').value);
             timeState.day = parseInt(document.getElementById('day').value);
             timeState.hour = parseInt(document.getElementById('hour').value);
             timeState.minute = parseInt(document.getElementById('minute').value);
+            timeState.second = 0;
             updateModel();
+            updateTimeDisplay();
         };
 
-        // Инициализация сцены
+        // Play/Pause
+        window.togglePlay = () => {
+            isPlaying = !isPlaying;
+            const btn = document.getElementById('playBtn');
+            btn.textContent = isPlaying ? '⏸ Пауза' : '▶ Пуск';
+        };
+
+        // Сброс
+        window.resetTime = () => {
+            timeState = { year: 2025, month: 11, day: 25, hour: 12, minute: 0, second: 0 };
+            document.getElementById('year').value = 2025;
+            document.getElementById('month').value = 11;
+            document.getElementById('day').value = 25;
+            document.getElementById('hour').value = 12;
+            document.getElementById('minute').value = 0;
+            updateModel();
+            updateTimeDisplay();
+        };
+
+        // Скорость
+        document.addEventListener('DOMContentLoaded', () => {
+            const speedSlider = document.getElementById('speedSlider');
+            const speedLabel = document.getElementById('speedLabel');
+            speedSlider.addEventListener('input', (e) => {
+                timeSpeed = parseInt(e.target.value);
+                speedLabel.textContent = timeSpeed + 'x';
+            });
+        });
+
+        // Инициализация
         function initScene() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000510);
             scene.fog = new THREE.Fog(0x000510, 100000, 300000);
             
-            camera = new THREE.PerspectiveCamera(
-                60,
-                (window.innerWidth - 400) / window.innerHeight,
-                1000,
-                500000
-            );
+            camera = new THREE.PerspectiveCamera(60, (window.innerWidth - 420) / window.innerHeight, 1000, 500000);
             camera.position.set(0, 50000, 50000);
             camera.lookAt(0, 0, 0);
             
             const canvas = document.getElementById('canvas');
             renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-            renderer.setSize(window.innerWidth - 400, window.innerHeight);
+            renderer.setSize(window.innerWidth - 420, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             
             controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -284,6 +373,7 @@
             surfaceLayer = new SurfaceLayer(scene, { earthRadius: 20000 });
             
             updateModel();
+            updateTimeDisplay();
             loadEvents();
             animate();
         }
@@ -296,21 +386,57 @@
             }
         }
 
-        // Цикл анимации
+        // Анимация
         function animate() {
             requestAnimationFrame(animate);
+            
+            // Обновление времени
+            if (isPlaying) {
+                const now = Date.now();
+                const deltaTime = (now - lastFrameTime) / 1000; // в секундах
+                lastFrameTime = now;
+                
+                timeState.second += deltaTime * timeSpeed;
+                
+                // Перенос секунд в минуты/часы/дни
+                while (timeState.second >= 60) {
+                    timeState.second -= 60;
+                    timeState.minute++;
+                    if (timeState.minute >= 60) {
+                        timeState.minute = 0;
+                        timeState.hour++;
+                        if (timeState.hour >= 24) {
+                            timeState.hour = 0;
+                            timeState.day++;
+                            // Упрощённо: не учитываем количество дней в месяце
+                            if (timeState.day > 30) {
+                                timeState.day = 1;
+                                timeState.month++;
+                                if (timeState.month > 12) {
+                                    timeState.month = 1;
+                                    timeState.year++;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                updateModel();
+                updateTimeDisplay();
+            } else {
+                lastFrameTime = Date.now();
+            }
+            
             controls.update();
             renderer.render(scene, camera);
         }
 
-        // Обработка изменения размера окна
         window.addEventListener('resize', () => {
-            camera.aspect = (window.innerWidth - 400) / window.innerHeight;
+            camera.aspect = (window.innerWidth - 420) / window.innerHeight;
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth - 400, window.innerHeight);
+            renderer.setSize(window.innerWidth - 420, window.innerHeight);
         });
 
-        // Запуск при загрузке
         window.addEventListener('DOMContentLoaded', initScene);
     </script>
 </body>
