@@ -19,5 +19,47 @@
     "longitude": -3.6,
     "latitude": 37.8,
     "description": "Полное солнечное затмение, Испания"
+  },
+  {
+    "event": "solar_eclipse",
+    "date": "2024-04-08T18:17:00Z",
+    "longitude": -99.1,
+    "latitude": 25.7,
+    "description": "Полное солнечное затмение, Мексика-США"
+  },
+  {
+    "event": "lunar_eclipse",
+    "date": "2025-03-14T06:58:00Z",
+    "longitude": -122.4,
+    "latitude": 37.8,
+    "description": "Полное лунное затмение, Сан-Франциско"
+  },
+  {
+    "event": "solar_eclipse",
+    "date": "2025-03-29T10:47:00Z",
+    "longitude": 0.0,
+    "latitude": 0.0,
+    "description": "Частное солнечное затмение, Африка"
+  },
+  {
+    "event": "lunar_eclipse",
+    "date": "2025-09-07T18:11:00Z",
+    "longitude": 139.7,
+    "latitude": 35.7,
+    "description": "Полное лунное затмение, Токио"
+  },
+  {
+    "event": "solar_eclipse",
+    "date": "2028-07-22T02:55:00Z",
+    "longitude": 151.2,
+    "latitude": -33.9,
+    "description": "Полное солнечное затмение, Австралия"
+  },
+  {
+    "event": "lunar_eclipse",
+    "date": "2028-12-31T16:51:00Z",
+    "longitude": -0.1,
+    "latitude": 51.5,
+    "description": "Полное лунное затмение, Лондон"
   }
 ]
