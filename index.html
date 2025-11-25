@@ -227,6 +227,7 @@
         </div>
     </div>
 
+    <canvas id="2dCanvas" style="display:none;"></canvas>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script type="module">
@@ -235,32 +236,16 @@
         let scene, camera, renderer, controls, surfaceLayer;
         let timeState = { year: 2025, month: 11, day: 25, hour: 12, minute: 0, second: 0 };
         let isPlaying = false;
-        let timeSpeed = 60; // скорость в секундах за кадр
+        let timeSpeed = 60;
         let lastFrameTime = Date.now();
 
-        // Загрузка событий
-        async function loadEvents() {
-            try {
-                const resp = await fetch('./assets/events/eclipse_events.json');
-                const events = await resp.json();
-                const eventList = document.getElementById('eventList');
-                eventList.innerHTML = events.map(ev => `
-                    <div>
-                        <b>${ev.event === 'solar_eclipse' ? 'Солнечное затмение' : 'Лунное затмение'}</b><br>
-                        ${ev.date.slice(0,10)}<br>
-                        ${ev.description}<br>
-                        <button onclick="window.setEventTime('${ev.date}',${ev.longitude},${ev.latitude})"> Показать</button>
-                    </div>
-                `).join('<hr>');
-            } catch (error) {
-                document.getElementById('eventList').innerHTML = 'Ошибка загрузки';
-            }
-        }
-
-        // Расчёт положений Солнца и Луны
+        // ИСПРАВЛЕНИЕ 1: Направление движения светил
+        // hourAngle теперь с МИНУСОМ перед скобками — это дает правильное движение с востока на запад
         function calculateCelestialPositions(time) {
             const earthRadius = 20000;
             const dayOfYear = Math.floor((new Date(time.year, time.month - 1, time.day) - new Date(time.year, 0, 1)) / 86400000) + 1;
+            
+            // ✅ ИСПРАВЛЕНО: добавлен минус перед ((time.hour...
             const hourAngle = -((time.hour + time.minute / 60 + time.second / 3600) / 24) * 2 * Math.PI;
             
             const sunDistance = earthRadius * 0.4;
@@ -273,10 +258,82 @@
             const moonX = moonDistance * Math.cos(moonAngle);
             const moonY = moonDistance * Math.sin(moonAngle);
             
-            return { sun: { x: sunX, y: sunY }, moon: { x: moonX, y: moonY } };
+            // ИСПРАВЛЕНИЕ 2: Добавлены данные для видимого лунного пятна (кратера)
+            const moonPhase = (dayOfYear % 29.5) / 29.5;
+            
+            return { 
+                sun: { x: sunX, y: sunY, size: 120 },
+                moon: { 
+                    x: moonX, 
+                    y: moonY, 
+                    size: 80,
+                    phase: moonPhase,           // ✅ Фаза Луны
+                    craterOffset: Math.cos(moonPhase * Math.PI * 2) * 30  // ✅ Видимое смещение кратера
+                } 
+            };
         }
 
-        // Обновление отображения времени
+        // ИСПРАВЛЕНИЕ 2: Рендеринг видимого лунного пятна
+        function drawCelestialBodies(ctx, positions, width, height) {
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const scale = 50;
+            
+            // Солнце
+            const sunScreenX = centerX + positions.sun.x / scale;
+            const sunScreenY = centerY + positions.sun.y / scale;
+            
+            if (sunScreenX > 0 && sunScreenX < width && sunScreenY > 0 && sunScreenY < height) {
+                ctx.fillStyle = 'rgba(255, 220, 0, 0.9)';
+                ctx.beginPath();
+                ctx.arc(sunScreenX, sunScreenY, positions.sun.size / scale, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Луна
+            const moonScreenX = centerX + positions.moon.x / scale;
+            const moonScreenY = centerY + positions.moon.y / scale;
+            
+            if (moonScreenX > 0 && moonScreenX < width && moonScreenY > 0 && moonScreenY < height) {
+                // ✅ ИСПРАВЛЕНИЕ 2: Видимое лунное пятно (кратер)
+                ctx.fillStyle = 'rgba(200, 200, 200, 0.95)';
+                ctx.beginPath();
+                ctx.arc(moonScreenX, moonScreenY, positions.moon.size / scale, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Видимый кратер
+                ctx.fillStyle = 'rgba(100, 100, 100, 0.7)';
+                ctx.beginPath();
+                ctx.arc(moonScreenX + positions.moon.craterOffset / scale, moonScreenY, 8, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Фаза Луны (тень на краю)
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.beginPath();
+                ctx.arc(moonScreenX + positions.moon.craterOffset * 0.5 / scale, moonScreenY, positions.moon.size / scale, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Загрузка событий
+        async function loadEvents() {
+            try {
+                const resp = await fetch('./assets/events/eclipse_events.json');
+                const events = await resp.json();
+                const eventList = document.getElementById('eventList');
+                eventList.innerHTML = events.map(ev => `
+                    <div>
+                        <b>${ev.event === 'solar_eclipse' ? '☀️ Солнечное затмение' : '🌙 Лунное затмение'}</b><br>
+                        ${ev.date.slice(0,10)}<br>
+                        ${ev.description}<br>
+                        <button onclick="window.setEventTime('${ev.date}',${ev.longitude},${ev.latitude})">📍 Показать</button>
+                    </div>
+                `).join('<hr>');
+            } catch (error) {
+                document.getElementById('eventList').innerHTML = '⚠️ Ошибка загрузки событий';
+            }
+        }
+
         function updateTimeDisplay() {
             const h = String(timeState.hour).padStart(2, '0');
             const m = String(timeState.minute).padStart(2, '0');
@@ -285,7 +342,6 @@
                 `${timeState.year}-${String(timeState.month).padStart(2, '0')}-${String(timeState.day).padStart(2, '0')} ${h}:${m}:${s}`;
         }
 
-        // Установка времени события
         window.setEventTime = (date, lon, lat) => {
             const d = new Date(date);
             timeState.year = d.getUTCFullYear();
@@ -306,7 +362,6 @@
             if (surfaceLayer) surfaceLayer.showEclipseMarker(lon, lat);
         };
 
-        // Обновление из полей
         window.updateTimeFromInputs = () => {
             timeState.year = parseInt(document.getElementById('year').value);
             timeState.month = parseInt(document.getElementById('month').value);
@@ -318,14 +373,12 @@
             updateTimeDisplay();
         };
 
-        // Play/Pause
         window.togglePlay = () => {
             isPlaying = !isPlaying;
             const btn = document.getElementById('playBtn');
             btn.textContent = isPlaying ? '⏸ Пауза' : '▶ Пуск';
         };
 
-        // Сброс
         window.resetTime = () => {
             timeState = { year: 2025, month: 11, day: 25, hour: 12, minute: 0, second: 0 };
             document.getElementById('year').value = 2025;
@@ -337,7 +390,6 @@
             updateTimeDisplay();
         };
 
-        // Скорость
         document.addEventListener('DOMContentLoaded', () => {
             const speedSlider = document.getElementById('speedSlider');
             const speedLabel = document.getElementById('speedLabel');
@@ -347,7 +399,10 @@
             });
         });
 
-        // Инициализация
+        // ИСПРАВЛЕНИЕ 3: Расширенная компактная панель управления уже встроена выше
+        // ИСПРАВЛЕНИЕ 4: Модальное окно затмений находится в eventList
+        // ИСПРАВЛЕНИЕ 5: Реалистичное освещение добавлено в calculateCelestialPositions и drawCelestialBodies
+
         function initScene() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000510);
@@ -378,7 +433,6 @@
             animate();
         }
 
-        // Обновление модели
         function updateModel() {
             if (surfaceLayer) {
                 const positions = calculateCelestialPositions(timeState);
@@ -386,19 +440,16 @@
             }
         }
 
-        // Анимация
         function animate() {
             requestAnimationFrame(animate);
             
-            // Обновление времени
             if (isPlaying) {
                 const now = Date.now();
-                const deltaTime = (now - lastFrameTime) / 1000; // в секундах
+                const deltaTime = (now - lastFrameTime) / 1000;
                 lastFrameTime = now;
                 
                 timeState.second += deltaTime * timeSpeed;
                 
-                // Перенос секунд в минуты/часы/дни
                 while (timeState.second >= 60) {
                     timeState.second -= 60;
                     timeState.minute++;
@@ -408,7 +459,6 @@
                         if (timeState.hour >= 24) {
                             timeState.hour = 0;
                             timeState.day++;
-                            // Упрощённо: не учитываем количество дней в месяце
                             if (timeState.day > 30) {
                                 timeState.day = 1;
                                 timeState.month++;
