@@ -53,7 +53,7 @@ class SurfaceLayer {
                 dayBrightness: { value: 0.0 }, // 0.0 = не затемняет карту днём
                 nightDarkness: { value: 0.75 }, // затемнение ночью
                 moonPhase: { value: 0.5 },
-                moonBrightness: { value: 0.15 }
+                moonBrightness: { value: 0.4 }
             },
             vertexShader: `
                 varying vec2 vPosition;
@@ -92,7 +92,7 @@ class SurfaceLayer {
                     
                     // Лунное освещение
                     float distToMoon = distance(vPosition, moonPosition);
-                    float moonRadius = earthRadius * 0.15;
+                    float moonRadius = earthRadius * 0.25;
                     float moonLight = smoothstep(moonRadius + 2000.0, moonRadius - 1000.0, distToMoon);
                     moonLight *= moonBrightness * moonPhase;
                     
@@ -103,6 +103,9 @@ class SurfaceLayer {
                     vec3 color = mix(nightColor, dayColor, totalLight);
                     
                     // Затемнение: днём почти не видно (прозрачно), ночью темно
+                                    // Добавляем видимое голубоватое лунное пятно
+                vec3 moonTint = vec3(0.6, 0.7, 0.9);
+                color = mix(color, moonTint, moonLight * 0.4);
                     float darkness = mix(nightDarkness, dayBrightness, totalLight);
                     
                     gl_FragColor = vec4(color, darkness);
