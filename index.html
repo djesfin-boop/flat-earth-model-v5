@@ -82,8 +82,9 @@ hr { border: none; height: 1px; background: rgba(78, 205, 196, 0.2); margin: 10p
 <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script type="module">
 import SurfaceLayer from './layers/layer0-surface.js';
-
-let scene, camera, renderer, controls, surfaceLayer;
+import GridLayer from './layers/layer1-grid.js';
+  
+let scene, camera, renderer, controls, surfaceLayer, gridLayer;
 let timeState = { year: 2025, month: 11, day: 25, hour: 12, minute: 0, second: 0 };
 let isPlaying = false;
 let timeSpeed = 60;
@@ -259,7 +260,8 @@ controls.maxDistance = 150000;
 scene.add(new THREE.AmbientLight(0x404060, 0.2));
 
 surfaceLayer = new SurfaceLayer(scene, { earthRadius: EARTH_RADIUS });
-
+gridLayer = new GridLayer(scene, { earthRadius: EARTH_RADIUS });
+  
 updateModel();
 updateTimeDisplay();
 loadEvents();
