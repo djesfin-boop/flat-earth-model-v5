@@ -97,8 +97,11 @@ class SurfaceLayer {
                     moonLight *= moonBrightness * moonPhase;
                     
                     // Общее освещение
-                    float totalLight = sunLight + moonLight * (1.0 - sunLight);
-                    
+                                    // Расчёт затмения: когда Луна близко к Солнцу, солнечный свет затеняется
+                float sunMoonDist = distance(sunPosition, moonPosition);
+                float eclipseFactor = smoothstep(300.0, 2000.0, sunMoonDist);
+                float adjustedSunLight = sunLight * eclipseFactor;
+                float totalLight = adjustedSunLight + moonLight * (1.0 - adjustedSunLight);
                     // Смешивание цветов дня и ночи
                     vec3 color = mix(nightColor, dayColor, totalLight);
                     
