@@ -269,7 +269,7 @@ animate();
 function updateModel() {
 if (surfaceLayer) {
 const positions = calculateCelestialPositions(timeState);
-surfaceLayer.updateLighting(positions.sun, positions.moon);
+surfaceLayer.updateLighting(positions.sun, positions.moon, positions.sun.declination);
 updateCelestialInfo(positions);
 }
 }
