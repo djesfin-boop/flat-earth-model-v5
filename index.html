@@ -92,6 +92,7 @@
             padding: 8px;
             background: rgba(0,0,0,0.2);
             border-radius: 4px;
+            line-height: 1.4;
         }
         #eventList { max-height: 200px; overflow-y: auto; }
         #eventList > div {
@@ -181,6 +182,7 @@
         let scene, camera, renderer, controls, surfaceLayer;
         let sunMesh, moonMesh, sunLight, moonLight;
         let sunSpotMesh, moonSpotMesh;
+        let earthPlane;
         
         let timeState = { year: 2025, month: 11, day: 25, hour: 12, minute: 0, second: 0 };
         let isPlaying = false;
@@ -196,16 +198,8 @@
 
         // ========== РЕАЛИСТИЧНЫЕ ДАННЫЕ ОБ ОСВЕЩЕНИИ ==========
         
-        // Интенсивность лунного света (люксы):
-        // Полнолуние: 0.25 лux (максимум)
-        // Первая/четвёртая четверть: 0.03 лux
-        // Новолуние: 0.002 лux
-        
         function getMoonIntensity(phase) {
-            // phase: 0 = новолуние, 0.5 = полнолуние
-            // Используем синусоидальную кривую для реалистичного распределения
-            // I = I_max * sin^2(π * phase)
-            const I_max = 0.25; // люксы
+            const I_max = 0.25;
             const intensity = I_max * Math.pow(Math.sin(Math.PI * phase), 2);
             return intensity;
         }
@@ -258,6 +252,7 @@
             const sunZ = sunOrbitRadius * Math.sin(hourAngle);
             const sunY = SUN_HEIGHT;
             
+            // ЛУНА: получает фазный сдвиг от новолуния
             const moonPhase = getMoonPhase(time.year, time.month, time.day);
             const moonPhaseAngle = moonPhase * 2 * Math.PI;
             const moonAngle = hourAngle + moonPhaseAngle;
@@ -275,7 +270,7 @@
                     z: moonZ, 
                     phase: moonPhase, 
                     phaseName: getMoonPhaseName(moonPhase),
-                    intensity: getMoonIntensity(moonPhase)  // РЕАЛИСТИЧНАЯ ИНТЕНСИВНОСТЬ
+                    intensity: getMoonIntensity(moonPhase)
                 },
                 dayOfYear: dayOfYear,
                 season: season,
@@ -334,10 +329,13 @@
         function updateCelestialInfo(positions) {
             const info = document.getElementById('celestialInfo');
             const moonLux = positions.moon.intensity;
+            const sunAltitude = (positions.sun.y / EARTH_RADIUS * 100).toFixed(1);
+            const moonAltitude = (positions.moon.y / EARTH_RADIUS * 100).toFixed(1);
             info.innerHTML = `
-                <b>☀️ Солнце:</b> радиус ${Math.round(positions.sun.orbitRadius)}м, склонение ${positions.sun.declination.toFixed(1)}°<br>
+                <b>☀️ Солнце:</b> орбита ${Math.round(positions.sun.orbitRadius)}м, склонение ${positions.sun.declination.toFixed(1)}°<br>
                 <b>🌙 Луна:</b> ${positions.moon.phaseName} (${Math.round(positions.moon.phase * 100)}%)<br>
                 <b>💡 Интенсивность:</b> ${moonLux.toFixed(4)} люкс<br>
+                <b>🌅 Высоты:</b> Солнце ${sunAltitude}%, Луна ${moonAltitude}%<br>
                 <b>🗓 Сезон:</b> ${positions.season} | День: ${positions.dayOfYear}
             `;
         }
@@ -401,6 +399,42 @@
 
         // ========== ИНИЦИАЛИЗАЦИЯ 3D СЦЕНЫ ==========
         
+        function createEarthPlane() {
+            const geometry = new THREE.CircleGeometry(EARTH_RADIUS, 256);
+            const canvas = document.createElement('canvas');
+            canvas.width = 2048;
+            canvas.height = 2048;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#1a1a2a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#0d4d3f';
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, canvas.height / 2, canvas.width / 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#0a3a2e';
+            for (let i = 0; i < 50; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                const size = Math.random() * 20 + 5;
+                ctx.fillRect(x, y, size, size);
+            }
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.magFilter = THREE.NearestFilter;
+            
+            const material = new THREE.MeshBasicMaterial({ 
+                map: texture,
+                side: THREE.DoubleSide
+            });
+            earthPlane = new THREE.Mesh(geometry, material);
+            earthPlane.rotation.x = -Math.PI / 2;
+            earthPlane.position.y = 0;
+            scene.add(earthPlane);
+        }
+
         function createSunMesh() {
             const geometry = new THREE.SphereGeometry(400, 32, 32);
             const material = new THREE.MeshBasicMaterial({ color: 0xFFDD44, transparent: true, opacity: 0.95 });
@@ -412,14 +446,19 @@
             const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
             sunMesh.add(glowMesh);
             
-            sunLight = new THREE.PointLight(0xFFFFCC, 2, 50000);
+            sunLight = new THREE.PointLight(0xFFFFCC, 2, 60000);
             sunMesh.add(sunLight);
             
-            const spotGeometry = new THREE.CircleGeometry(3000, 64);
-            const spotMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFF99, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
+            const spotGeometry = new THREE.CircleGeometry(3500, 128);
+            const spotMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xFFFF99, 
+                transparent: true, 
+                opacity: 0.35,
+                side: THREE.DoubleSide 
+            });
             sunSpotMesh = new THREE.Mesh(spotGeometry, spotMaterial);
             sunSpotMesh.rotation.x = -Math.PI / 2;
-            sunSpotMesh.position.y = 10;
+            sunSpotMesh.position.y = 15;
             scene.add(sunSpotMesh);
         }
 
@@ -435,20 +474,19 @@
             craterMesh.position.z = 251;
             moonMesh.add(craterMesh);
             
-            moonLight = new THREE.PointLight(0x8888FF, 0.3, 30000);
+            moonLight = new THREE.PointLight(0x8888FF, 0.5, 40000);
             moonMesh.add(moonLight);
             
-            // РЕАЛИСТИЧНОЕ ЛУННОЕ ПЯТНО
-            const spotGeometry = new THREE.CircleGeometry(2500, 64);
+            const spotGeometry = new THREE.CircleGeometry(3200, 128);
             const spotMaterial = new THREE.MeshBasicMaterial({ 
-                color: 0x6666DD, 
+                color: 0x7799FF, 
                 transparent: true, 
-                opacity: 0.25,  // Увеличена видимость
+                opacity: 0.4,
                 side: THREE.DoubleSide 
             });
             moonSpotMesh = new THREE.Mesh(spotGeometry, spotMaterial);
             moonSpotMesh.rotation.x = -Math.PI / 2;
-            moonSpotMesh.position.y = 5;
+            moonSpotMesh.position.y = 8;
             scene.add(moonSpotMesh);
         }
 
@@ -474,9 +512,10 @@
             controls.minDistance = 10000;
             controls.maxDistance = 120000;
             
-            const ambientLight = new THREE.AmbientLight(0x202040, 0.3);
+            const ambientLight = new THREE.AmbientLight(0x202040, 0.25);
             scene.add(ambientLight);
             
+            createEarthPlane();
             createSunMesh();
             createMoonMesh();
             
@@ -500,21 +539,19 @@
             
             if (sunMesh) {
                 sunMesh.position.set(positions.sun.x, positions.sun.y, positions.sun.z);
-                sunSpotMesh.position.set(positions.sun.x, 10, positions.sun.z);
+                sunSpotMesh.position.set(positions.sun.x, 15, positions.sun.z);
                 const spotScale = 1 + Math.abs(positions.sun.declination) / 23.44 * 0.5;
                 sunSpotMesh.scale.set(spotScale, spotScale, 1);
             }
             
             if (moonMesh) {
                 moonMesh.position.set(positions.moon.x, positions.moon.y, positions.moon.z);
-                moonSpotMesh.position.set(positions.moon.x, 5, positions.moon.z);
+                moonSpotMesh.position.set(positions.moon.x, 8, positions.moon.z);
                 
-                // РЕАЛИСТИЧНАЯ ИНТЕНСИВНОСТЬ ЛУННОГО СВЕТА
-                const moonIntensity = positions.moon.intensity;  // люксы (0-0.25)
-                const normalizedIntensity = moonIntensity / 0.25;  // нормализуем к 0-1
+                const moonIntensity = positions.moon.intensity;
+                const normalizedIntensity = moonIntensity / 0.25;
                 
-                // Яркость пятна зависит от реальной интенсивности Луны
-                moonSpotMesh.material.opacity = 0.25 * normalizedIntensity;
+                moonSpotMesh.material.opacity = 0.35 * normalizedIntensity;
                 moonLight.intensity = 0.5 * normalizedIntensity;
                 
                 moonMesh.lookAt(0, 0, 0);
