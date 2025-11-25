@@ -1,7 +1,7 @@
 /**
  * Layer 0: Surface Layer - Flat Earth Model v5
- * Световые пятна Солнца и Луны на азимутальной карте
- * @version 5.6.0
+ * Реалистичное освещение с терминатором и плавным переходом день/ночь
+ * @version 6.0.0
  */
 
 class SurfaceLayer {
@@ -9,16 +9,14 @@ class SurfaceLayer {
         this.scene = scene;
         this.config = config;
         this.mesh = null;
+        this.lightingOverlay = null;
         this.sunPosition = { x: 0, y: 0 };
         this.moonPosition = { x: 0, y: 0 };
         this.moonPhase = 0;
         this.eclipseMarker = null;
-        this.sunSpotMesh = null;
-        this.moonPhaseMesh = null;
         
         this.createSurface();
-        this.createSunSpot();
-        this.createMoonPhaseSpot();
+        this.createLightingOverlay();
     }
     
     createSurface() {
@@ -38,151 +36,128 @@ class SurfaceLayer {
         });
     }
     
-    createSunSpot() {
-        // Солнечное пятно с ярким радиальным градиентом
-        const sunRadius = 5000; // увеличенный радиус для лучшей видимости
-        const geometry = new THREE.CircleGeometry(sunRadius, 128);
+    createLightingOverlay() {
+        // Слой освещения с реалистичным терминатором
+        const geometry = new THREE.CircleGeometry(this.config.earthRadius, 512);
         
         const material = new THREE.ShaderMaterial({
             transparent: true,
             depthWrite: false,
             uniforms: {
-                color: { value: new THREE.Color(0xffeb3b) },
-                centerOpacity: { value: 0.7 },
-                edgeOpacity: { value: 0.0 }
+                sunPosition: { value: new THREE.Vector2(0, 0) },
+                moonPosition: { value: new THREE.Vector2(0, 0) },
+                earthRadius: { value: this.config.earthRadius },
+                dayColor: { value: new THREE.Color(0xffffff) },
+                nightColor: { value: new THREE.Color(0x000a1f) },
+                twilightWidth: { value: 3000 }, // ширина сумеречной зоны в км
+                dayBrightness: { value: 0.0 }, // 0.0 = не затемняет карту днём
+                nightDarkness: { value: 0.75 }, // затемнение ночью
+                moonPhase: { value: 0.5 },
+                moonBrightness: { value: 0.15 }
             },
             vertexShader: `
-                varying vec2 vUv;
+                varying vec2 vPosition;
+                
                 void main() {
-                    vUv = uv * 2.0 - 1.0;
+                    vPosition = position.xy;
                     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
                 }
             `,
             fragmentShader: `
-                uniform vec3 color;
-                uniform float centerOpacity;
-                uniform float edgeOpacity;
-                varying vec2 vUv;
+                uniform vec2 sunPosition;
+                uniform vec2 moonPosition;
+                uniform float earthRadius;
+                uniform vec3 dayColor;
+                uniform vec3 nightColor;
+                uniform float twilightWidth;
+                uniform float dayBrightness;
+                uniform float nightDarkness;
+                uniform float moonPhase;
+                uniform float moonBrightness;
+                
+                varying vec2 vPosition;
                 
                 void main() {
-                    float r = length(vUv);
-                    if (r > 1.0) discard;
+                    // Расстояние от текущей точки до центра солнечного пятна
+                    float distToSun = distance(vPosition, sunPosition);
                     
-                    // Сильный градиент для яркого центра
-                    float gradient = pow(1.0 - r, 2.5);
-                    float alpha = mix(edgeOpacity, centerOpacity, gradient);
+                    // Радиус дневного пятна (половина Земли для упрощения)
+                    float dayRadius = earthRadius * 0.5;
                     
-                    gl_FragColor = vec4(color, alpha);
+                    // Расстояние от границы дня (положительное = день, отрицательное = ночь)
+                    float distFromTerminator = dayRadius - distToSun;
+                    
+                    // Плавный переход через сумеречную зону
+                    float sunLight = smoothstep(-twilightWidth, twilightWidth, distFromTerminator);
+                    
+                    // Лунное освещение
+                    float distToMoon = distance(vPosition, moonPosition);
+                    float moonRadius = earthRadius * 0.15;
+                    float moonLight = smoothstep(moonRadius + 2000.0, moonRadius - 1000.0, distToMoon);
+                    moonLight *= moonBrightness * moonPhase;
+                    
+                    // Общее освещение
+                    float totalLight = sunLight + moonLight * (1.0 - sunLight);
+                    
+                    // Смешивание цветов дня и ночи
+                    vec3 color = mix(nightColor, dayColor, totalLight);
+                    
+                    // Затемнение: днём почти не видно (прозрачно), ночью темно
+                    float darkness = mix(nightDarkness, dayBrightness, totalLight);
+                    
+                    gl_FragColor = vec4(color, darkness);
                 }
             `
         });
         
-        this.sunSpotMesh = new THREE.Mesh(geometry, material);
-        this.sunSpotMesh.position.set(0, 25, 0);
-        this.sunSpotMesh.rotation.x = -Math.PI / 2;
-        this.scene.add(this.sunSpotMesh);
-    }
-    
-    createMoonPhaseSpot() {
-        // Лунное пятно с учётом фаз и ярким градиентом
-        const radius = 2000;
-        const geometry = new THREE.CircleGeometry(radius, 128);
-        
-        const material = new THREE.ShaderMaterial({
-            transparent: true,
-            depthWrite: false,
-            uniforms: {
-                phase: { value: 0 },
-                color: { value: new THREE.Color(0xadd8e6) },
-                opacity: { value: 0.5 }
-            },
-            vertexShader: `
-                varying vec2 vUv;
-                void main() {
-                    vUv = uv * 2.0 - 1.0;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
-                uniform float phase;
-                uniform vec3 color;
-                uniform float opacity;
-                varying vec2 vUv;
-                
-                void main() {
-                    float r = length(vUv);
-                    if (r > 1.0) discard;
-                    
-                    float angle = atan(vUv.y, vUv.x);
-                    float phaseShift = phase * 3.1415926;
-                    float mask = (cos(angle - phaseShift) + 1.0) / 2.0;
-                    float thresh = 0.5 + 0.5 * phase;
-                    float visible = step(mask, thresh);
-                    
-                    // Яркий градиент
-                    float gradient = pow(1.0 - r, 1.8);
-                    float alpha = opacity * visible * gradient;
-                    
-                    gl_FragColor = vec4(color, alpha);
-                }
-            `
-        });
-        
-        this.moonPhaseMesh = new THREE.Mesh(geometry, material);
-        this.moonPhaseMesh.position.set(0, 28, 0);
-        this.moonPhaseMesh.rotation.x = -Math.PI / 2;
-        this.scene.add(this.moonPhaseMesh);
+        this.lightingOverlay = new THREE.Mesh(geometry, material);
+        this.lightingOverlay.position.y = 10;
+        this.lightingOverlay.rotation.x = -Math.PI / 2;
+        this.scene.add(this.lightingOverlay);
     }
     
     updateLighting(sunPos, moonPos) {
-        // Обновление положения солнечного пятна
-        if (this.sunSpotMesh && sunPos) {
-            this.sunSpotMesh.position.set(sunPos.x, 25, sunPos.y);
-        }
+        this.sunPosition = sunPos;
+        this.moonPosition = moonPos;
         
-        // Обновление положения лунного пятна
-        if (this.moonPhaseMesh && moonPos) {
-            this.moonPhaseMesh.position.set(moonPos.x, 28, moonPos.y);
-        }
-        
-        // Расчет фазы Луны
-        if (sunPos && moonPos) {
+        if (this.lightingOverlay && this.lightingOverlay.material.uniforms) {
+            // Обновление позиций в шейдере
+            this.lightingOverlay.material.uniforms.sunPosition.value.set(sunPos.x, sunPos.y);
+            this.lightingOverlay.material.uniforms.moonPosition.value.set(moonPos.x, moonPos.y);
+            
+            // Расчёт фазы Луны
             const sx = sunPos.x, sy = sunPos.y;
             const mx = moonPos.x, my = moonPos.y;
             const sunLen = Math.sqrt(sx * sx + sy * sy);
             const moonLen = Math.sqrt(mx * mx + my * my);
             
             if (sunLen > 0 && moonLen > 0) {
-                const l_s_dot = (sx * mx + sy * my) / (sunLen * moonLen);
-                let phase = Math.acos(Math.max(-1, Math.min(1, l_s_dot))) / Math.PI;
-                phase = Math.cos(phase * Math.PI);
-                
-                if (this.moonPhaseMesh && this.moonPhaseMesh.material.uniforms) {
-                    this.moonPhaseMesh.material.uniforms.phase.value = phase;
-                }
+                const dot = (sx * mx + sy * my) / (sunLen * moonLen);
+                let phase = (Math.acos(Math.max(-1, Math.min(1, dot))) / Math.PI);
+                // Преобразование в яркость (0 = новолуние, 1 = полнолуние)
+                phase = (1.0 + Math.cos(phase * Math.PI)) / 2.0;
+                this.lightingOverlay.material.uniforms.moonPhase.value = phase;
             }
         }
     }
     
     showEclipseMarker(lon, lat) {
-        // Удаляем предыдущий маркер
         if (this.eclipseMarker) {
             this.scene.remove(this.eclipseMarker);
         }
         
-        // Конвертация широты/долготы в координаты азимутальной проекции
         const r = this.config.earthRadius;
         const phi = (90 - lat) * Math.PI / 180;
         const theta = lon * Math.PI / 180;
-        const distance = r * (phi / (Math.PI / 2)); // расстояние от центра
+        const distance = r * (phi / (Math.PI / 2));
         const x = distance * Math.sin(theta);
         const y = distance * Math.cos(theta);
         
-        const markerGeometry = new THREE.RingGeometry(500, 700, 64);
+        const markerGeometry = new THREE.RingGeometry(800, 1200, 64);
         const markerMaterial = new THREE.MeshBasicMaterial({ 
             color: 0xff0000, 
             transparent: true, 
-            opacity: 0.6,
+            opacity: 0.7,
             depthWrite: false
         });
         this.eclipseMarker = new THREE.Mesh(markerGeometry, markerMaterial);
