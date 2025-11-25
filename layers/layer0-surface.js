@@ -1,6 +1,6 @@
 /**
  * Layer 0: Surface Layer - Flat Earth Model v6
- * Реалистичное косинусное освещение в азимутальной проекции (пятна от светил)
+ * Реалистичное косинусное освещение с цветовой температурой (тёплый день, холодная ночь)
  */
 
 class SurfaceLayer {
@@ -45,12 +45,13 @@ class SurfaceLayer {
                 sunPosition: { value: new THREE.Vector2(0, 0) },
                 moonPosition: { value: new THREE.Vector2(0, 0) },
                 earthRadius: { value: this.config.earthRadius },
-                dayColor: { value: new THREE.Color(0xffffff) },
-                nightColor: { value: new THREE.Color(0x102235) },
-                dayBrightness: { value: 0.0 },
-                nightDarkness: { value: 0.85 },
+                sunColor: { value: new THREE.Color(0xffdd88) },      // Тёплый солнечный свет
+                twilightColor: { value: new THREE.Color(0xff7733) }, // Оранжевые сумерки
+                nightColor: { value: new THREE.Color(0x0a1428) },    // Тёмно-синяя ночь
+                moonColor: { value: new THREE.Color(0x6688cc) },     // Холодный лунный свет
+                nightDarkness: { value: 0.82 },
                 moonPhase: { value: 0.5 },
-                moonBrightness: { value: 0.5 }
+                moonBrightness: { value: 0.6 }
             },
             vertexShader: `
                 varying vec2 vPosition;
@@ -63,9 +64,10 @@ class SurfaceLayer {
                 uniform vec2 sunPosition;
                 uniform vec2 moonPosition;
                 uniform float earthRadius;
-                uniform vec3 dayColor;
+                uniform vec3 sunColor;
+                uniform vec3 twilightColor;
                 uniform vec3 nightColor;
-                uniform float dayBrightness;
+                uniform vec3 moonColor;
                 uniform float nightDarkness;
                 uniform float moonPhase;
                 uniform float moonBrightness;
@@ -76,32 +78,40 @@ class SurfaceLayer {
                 const float moonHeight = 4000.0;
 
                 void main() {
-                    // Солнце: ортогональная модель, плавное косинусное пятно
+                    // Солнечное освещение по косинусному закону
                     vec2 toSun = vPosition - sunPosition;
                     float dist2 = dot(toSun, toSun);
                     float rSun = sqrt(dist2 + sunHeight * sunHeight);
                     float sunCos = sunHeight / rSun;
-                    float sunLight = smoothstep(0.07, 0.16, sunCos);
-
-                    // Луна: то же самое, слабее и в зависимости от фазы
+                    
+                    // Три зоны: день, сумерки, ночь
+                    float dayLight = smoothstep(0.12, 0.20, sunCos);      // Полный день
+                    float twilightLight = smoothstep(0.06, 0.14, sunCos); // Зона сумерек
+                    
+                    // Лунное освещение
                     vec2 toMoon = vPosition - moonPosition;
                     float dist2m = dot(toMoon, toMoon);
                     float rMoon = sqrt(dist2m + moonHeight * moonHeight);
                     float moonCos = moonHeight / rMoon;
                     float moonLight = smoothstep(0.085, 0.18, moonCos) * moonBrightness * moonPhase;
 
-                    // Комбинация света: преимущественно солнце, ночью подсветка от луны
-                    float totalLight = sunLight + moonLight * (1.0 - sunLight);
+                    // Смешивание цветов по зонам
+                    vec3 color = nightColor; // Базовая ночь
+                    
+                    // Добавить лунный свет (холодный голубой)
+                    color = mix(color, moonColor, moonLight * (1.0 - twilightLight) * 0.35);
+                    
+                    // Добавить сумерки (оранжевый)
+                    color = mix(color, twilightColor, (twilightLight - dayLight) * 0.6);
+                    
+                    // Добавить дневной свет (тёплый жёлтый)
+                    color = mix(color, sunColor, dayLight * 0.25);
 
-                    vec3 color = mix(nightColor, dayColor, totalLight);
+                    // Затемнение: полная тьма ночью, прозрачно днём
+                    float totalLight = max(dayLight, twilightLight * 0.5);
+                    float darkness = mix(nightDarkness, 0.0, totalLight + moonLight * 0.2);
 
-                    // Добавить лунный голубой оттенок ночью
-                    vec3 moonTint = vec3(0.62, 0.74, 1.00);
-                    color = mix(color, moonTint, moonLight * 0.9 * (1.0 - sunLight));
-
-                    float darkness = mix(nightDarkness, dayBrightness, totalLight);
-
-                    gl_FragColor = vec4(color, 1.0 - darkness);
+                    gl_FragColor = vec4(color, darkness);
                 }
             `
         });
@@ -113,7 +123,6 @@ class SurfaceLayer {
     }
 
     updateLighting(sunPos, moonPos) {
-        // Ключ: используем X и Z (плоские координаты)
         this.sunPosition = { x: sunPos.x, z: sunPos.z };
         this.moonPosition = { x: moonPos.x, z: moonPos.z };
 
@@ -121,7 +130,7 @@ class SurfaceLayer {
             this.lightingOverlay.material.uniforms.sunPosition.value.set(sunPos.x, sunPos.z);
             this.lightingOverlay.material.uniforms.moonPosition.value.set(moonPos.x, moonPos.z);
 
-            // Фаза луны по позиции (оставляем прежнее приближение)
+            // Расчёт фазы Луны
             const sx = sunPos.x, sz = sunPos.z;
             const mx = moonPos.x, mz = moonPos.z;
             const sunLen = Math.sqrt(sx * sx + sz * sz);
