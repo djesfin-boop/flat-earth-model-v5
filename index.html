@@ -261,7 +261,7 @@
         function calculateCelestialPositions(time) {
             const earthRadius = 20000;
             const dayOfYear = Math.floor((new Date(time.year, time.month - 1, time.day) - new Date(time.year, 0, 1)) / 86400000) + 1;
-            const hourAngle = ((time.hour + time.minute / 60 + time.second / 3600) / 24) * 2 * Math.PI;
+            const hourAngle = -((time.hour + time.minute / 60 + time.second / 3600) / 24) * 2 * Math.PI;
             
             const sunDistance = earthRadius * 0.4;
             const sunX = sunDistance * Math.cos(hourAngle);
