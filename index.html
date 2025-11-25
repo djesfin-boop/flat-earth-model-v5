@@ -6,159 +6,30 @@
     <title>Flat Earth Model v6 - Реалистичное освещение</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden;
-            background: #000;
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; background: #000; }
         .container { display: flex; height: 100vh; }
         #canvas { flex: 1; display: block; }
-        .panel {
-            width: 420px;
-            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
-            color: #e0e0e0;
-            padding: 20px;
-            overflow-y: auto;
-            box-shadow: -5px 0 15px rgba(0,0,0,0.3);
-        }
-        .panel h1 {
-            font-size: 24px;
-            margin-bottom: 20px;
-            color: #4ecdc4;
-            text-align: center;
-        }
-        .section {
-            margin-bottom: 25px;
-            background: rgba(255,255,255,0.05);
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid rgba(78, 205, 196, 0.2);
-        }
-        .section-title {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 12px;
-            color: #4ecdc4;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .control-group {
-            margin-bottom: 15px;
-        }
-        .control-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 13px;
-            color: #b0b0b0;
-        }
-        .control-group input,
-        .control-group select {
-            width: 100%;
-            padding: 8px;
-            background: rgba(0,0,0,0.3);
-            border: 1px solid rgba(78, 205, 196, 0.3);
-            border-radius: 5px;
-            color: #e0e0e0;
-            font-size: 14px;
-        }
-        .control-group input:focus,
-        .control-group select:focus {
-            outline: none;
-            border-color: #4ecdc4;
-            box-shadow: 0 0 10px rgba(78, 205, 196, 0.3);
-        }
-        .time-controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-        .btn {
-            width: 100%;
-            padding: 10px;
-            background: linear-gradient(135deg, #4ecdc4 0%, #3aa99f 100%);
-            border: none;
-            border-radius: 5px;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 10px;
-            font-size: 14px;
-        }
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4);
-        }
-        .btn-secondary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        .btn-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .speed-control {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .speed-control input[type="range"] {
-            flex: 1;
-        }
-        .speed-label {
-            min-width: 60px;
-            text-align: center;
-            font-weight: bold;
-            color: #4ecdc4;
-        }
-        #currentTime {
-            text-align: center;
-            padding: 10px;
-            background: rgba(78, 205, 196, 0.1);
-            border-radius: 5px;
-            margin-bottom: 15px;
-            font-size: 18px;
-            font-weight: bold;
-            color: #4ecdc4;
-        }
-        #celestialInfo {
-            font-size: 12px;
-            color: #aaa;
-            line-height: 1.6;
-        }
-        #eventList {
-            max-height: 250px;
-            overflow-y: auto;
-        }
-        #eventList > div {
-            background: rgba(0,0,0,0.2);
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 10px;
-            font-size: 13px;
-        }
-        #eventList button {
-            margin-top: 8px;
-            padding: 5px 10px;
-            background: #ff6b6b;
-            border: none;
-            border-radius: 3px;
-            color: white;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        #eventList button:hover {
-            background: #ff5252;
-        }
-        hr {
-            border: none;
-            height: 1px;
-            background: rgba(78, 205, 196, 0.2);
-            margin: 10px 0;
-        }
+        .panel { width: 420px; background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%); color: #e0e0e0; padding: 20px; overflow-y: auto; box-shadow: -5px 0 15px rgba(0,0,0,0.3); }
+        .panel h1 { font-size: 24px; margin-bottom: 20px; color: #4ecdc4; text-align: center; }
+        .section { margin-bottom: 25px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; border: 1px solid rgba(78, 205, 196, 0.2); }
+        .section-title { font-size: 16px; font-weight: bold; margin-bottom: 12px; color: #4ecdc4; }
+        .control-group { margin-bottom: 15px; }
+        .control-group label { display: block; margin-bottom: 5px; font-size: 13px; color: #b0b0b0; }
+        .control-group input, .control-group select { width: 100%; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(78, 205, 196, 0.3); border-radius: 5px; color: #e0e0e0; font-size: 14px; }
+        .time-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn { width: 100%; padding: 10px; background: linear-gradient(135deg, #4ecdc4 0%, #3aa99f 100%); border: none; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 14px; }
+        .btn:hover { box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4); }
+        .btn-secondary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .speed-control { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .speed-control input[type="range"] { flex: 1; }
+        .speed-label { min-width: 60px; text-align: center; font-weight: bold; color: #4ecdc4; }
+        #currentTime { text-align: center; padding: 10px; background: rgba(78, 205, 196, 0.1); border-radius: 5px; margin-bottom: 15px; font-size: 18px; font-weight: bold; color: #4ecdc4; }
+        #celestialInfo { font-size: 12px; color: #aaa; line-height: 1.6; }
+        #eventList { max-height: 250px; overflow-y: auto; }
+        #eventList > div { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; margin-bottom: 10px; font-size: 13px; }
+        #eventList button { margin-top: 8px; padding: 5px 10px; background: #ff6b6b; border: none; border-radius: 3px; color: white; cursor: pointer; font-size: 12px; }
+        hr { border: none; height: 1px; background: rgba(78, 205, 196, 0.2); margin: 10px 0; }
     </style>
 </head>
 <body>
@@ -166,24 +37,20 @@
         <canvas id="canvas"></canvas>
         <div class="panel">
             <h1>🌍 Flat Earth Model v6</h1>
-            
             <div class="section">
                 <div class="section-title">⏰ Текущее время</div>
                 <div id="currentTime">--:--:--</div>
-                <div id="celestialInfo">Загрузка данных...</div>
-                
+                <div id="celestialInfo">Загрузка...</div>
                 <div class="btn-group">
                     <button class="btn" id="playBtn" onclick="togglePlay()">▶ Пуск</button>
                     <button class="btn btn-secondary" onclick="resetTime()">🔄 Сброс</button>
                 </div>
-                
                 <div class="speed-control">
                     <label style="min-width: 90px; color: #b0b0b0;">Скорость:</label>
                     <input type="range" id="speedSlider" min="1" max="10000" value="60" step="1">
                     <span class="speed-label" id="speedLabel">60x</span>
                 </div>
             </div>
-            
             <div class="section">
                 <div class="section-title">📅 Установить время</div>
                 <div class="control-group">
@@ -191,28 +58,15 @@
                     <input type="number" id="year" value="2025" min="2000" max="2100">
                 </div>
                 <div class="time-controls">
-                    <div class="control-group">
-                        <label>Месяц</label>
-                        <input type="number" id="month" value="11" min="1" max="12">
-                    </div>
-                    <div class="control-group">
-                        <label>День</label>
-                        <input type="number" id="day" value="25" min="1" max="31">
-                    </div>
+                    <div class="control-group"><label>Месяц</label><input type="number" id="month" value="11" min="1" max="12"></div>
+                    <div class="control-group"><label>День</label><input type="number" id="day" value="25" min="1" max="31"></div>
                 </div>
                 <div class="time-controls">
-                    <div class="control-group">
-                        <label>Час</label>
-                        <input type="number" id="hour" value="12" min="0" max="23">
-                    </div>
-                    <div class="control-group">
-                        <label>Минуты</label>
-                        <input type="number" id="minute" value="0" min="0" max="59">
-                    </div>
+                    <div class="control-group"><label>Час</label><input type="number" id="hour" value="12" min="0" max="23"></div>
+                    <div class="control-group"><label>Минуты</label><input type="number" id="minute" value="0" min="0" max="59"></div>
                 </div>
                 <button class="btn" onclick="updateTimeFromInputs()">Применить</button>
             </div>
-
             <div class="section">
                 <div class="section-title">🌑 События затмений</div>
                 <div id="eventList">Загрузка...</div>
@@ -238,8 +92,6 @@
         const SUN_ORBIT_RADIUS_MAX = EARTH_RADIUS * 0.45;
         const MOON_ORBIT_RADIUS = EARTH_RADIUS * 0.35;
 
-        // ========== АСТРОНОМИЧЕСКИЕ РАСЧЁТЫ ==========
-        
         function getDayOfYear(year, month, day) {
             const date = new Date(year, month - 1, day);
             const start = new Date(year, 0, 1);
@@ -276,8 +128,7 @@
 
         function getMoonIntensity(phase) {
             const I_max = 0.25;
-            const intensity = I_max * Math.pow(Math.sin(Math.PI * phase), 2);
-            return intensity;
+            return I_max * Math.pow(Math.sin(Math.PI * phase), 2);
         }
 
         function calculateCelestialPositions(time) {
@@ -299,22 +150,11 @@
             const moonZ = MOON_ORBIT_RADIUS * Math.sin(moonAngle);
             const moonY = MOON_HEIGHT;
             
-            const season = getSeason(dayOfYear);
-            
             return {
                 sun: { x: sunX, y: sunY, z: sunZ, orbitRadius: sunOrbitRadius, declination: declination * 180 / Math.PI },
                 moon: { x: moonX, y: moonY, z: moonZ, phase: moonPhase, phaseName: getMoonPhaseName(moonPhase), intensity: getMoonIntensity(moonPhase) },
-                dayOfYear: dayOfYear,
-                season: season,
-                hourAngle: hourAngle * 180 / Math.PI
+                dayOfYear: dayOfYear
             };
-        }
-
-        function getSeason(dayOfYear) {
-            if (dayOfYear >= 80 && dayOfYear < 172) return 'Весна';
-            if (dayOfYear >= 172 && dayOfYear < 266) return 'Лето';
-            if (dayOfYear >= 266 && dayOfYear < 355) return 'Осень';
-            return 'Зима';
         }
 
         function getMoonPhaseName(phase) {
@@ -333,14 +173,7 @@
                 const resp = await fetch('./assets/events/eclipse_events.json');
                 const events = await resp.json();
                 const eventList = document.getElementById('eventList');
-                eventList.innerHTML = events.map(ev => `
-                    <div>
-                        <b>${ev.event === 'solar_eclipse' ? '☀️ Солнечное затмение' : '🌙 Лунное затмение'}</b><br>
-                        ${ev.date.slice(0,10)}<br>
-                        ${ev.description}<br>
-                        <button onclick="window.setEventTime('${ev.date}',${ev.longitude},${ev.latitude})">Показать</button>
-                    </div>
-                `).join('<hr>');
+                eventList.innerHTML = events.map(ev => `<div><b>${ev.event === 'solar_eclipse' ? '☀️ Солнечное затмение' : '🌙 Лунное затмение'}</b><br>${ev.date.slice(0,10)}<br>${ev.description}<br><button onclick="window.setEventTime('${ev.date}',${ev.longitude},${ev.latitude})">Показать</button></div>`).join('<hr>');
             } catch (error) {
                 document.getElementById('eventList').innerHTML = 'Ошибка загрузки';
             }
@@ -350,55 +183,42 @@
             const h = String(timeState.hour).padStart(2, '0');
             const m = String(timeState.minute).padStart(2, '0');
             const s = String(Math.floor(timeState.second)).padStart(2, '0');
-            document.getElementById('currentTime').textContent = 
-                `${timeState.year}-${String(timeState.month).padStart(2, '0')}-${String(timeState.day).padStart(2, '0')} ${h}:${m}:${s}`;
+            document.getElementById('currentTime').textContent = `${timeState.year}-${String(timeState.month).padStart(2, '0')}-${String(timeState.day).padStart(2, '0')} ${h}:${m}:${s}`;
         }
 
         function updateCelestialInfo(positions) {
-            const info = document.getElementById('celestialInfo');
-            info.innerHTML = `
-                <b>☀️ Солнце:</b> орбита ${Math.round(positions.sun.orbitRadius)}м, склонение ${positions.sun.declination.toFixed(1)}°<br>
-                <b>🌙 Луна:</b> ${positions.moon.phaseName} (${Math.round(positions.moon.phase * 100)}%)<br>
-                <b>💡 Интенсивность Луны:</b> ${positions.moon.intensity.toFixed(4)} люкс<br>
-                <b>🗓 Сезон:</b> ${positions.season} | День года: ${positions.dayOfYear}
-            `;
+            document.getElementById('celestialInfo').innerHTML = `<b>☀️ Солнце:</b> орбита ${Math.round(positions.sun.orbitRadius)}м, склонение ${positions.sun.declination.toFixed(1)}°<br><b>🌙 Луна:</b> ${positions.moon.phaseName} (${Math.round(positions.moon.phase * 100)}%)<br><b>💡 Интенсивность Луны:</b> ${positions.moon.intensity.toFixed(4)} люкс<br><b>🗓 День года:</b> ${positions.dayOfYear}`;
         }
 
         window.setEventTime = (date, lon, lat) => {
             const d = new Date(date);
-            timeState.year = d.getUTCFullYear();
-            timeState.month = d.getUTCMonth() + 1;
-            timeState.day = d.getUTCDate();
-            timeState.hour = d.getUTCHours();
-            timeState.minute = d.getUTCMinutes();
-            timeState.second = 0;
-            
+            timeState = { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(), hour: d.getUTCHours(), minute: d.getUTCMinutes(), second: 0 };
             document.getElementById('year').value = timeState.year;
             document.getElementById('month').value = timeState.month;
             document.getElementById('day').value = timeState.day;
             document.getElementById('hour').value = timeState.hour;
             document.getElementById('minute').value = timeState.minute;
-            
             updateModel();
             updateTimeDisplay();
             if (surfaceLayer) surfaceLayer.showEclipseMarker(lon, lat);
         };
 
         window.updateTimeFromInputs = () => {
-            timeState.year = parseInt(document.getElementById('year').value);
-            timeState.month = parseInt(document.getElementById('month').value);
-            timeState.day = parseInt(document.getElementById('day').value);
-            timeState.hour = parseInt(document.getElementById('hour').value);
-            timeState.minute = parseInt(document.getElementById('minute').value);
-            timeState.second = 0;
+            timeState = {
+                year: parseInt(document.getElementById('year').value),
+                month: parseInt(document.getElementById('month').value),
+                day: parseInt(document.getElementById('day').value),
+                hour: parseInt(document.getElementById('hour').value),
+                minute: parseInt(document.getElementById('minute').value),
+                second: 0
+            };
             updateModel();
             updateTimeDisplay();
         };
 
         window.togglePlay = () => {
             isPlaying = !isPlaying;
-            const btn = document.getElementById('playBtn');
-            btn.textContent = isPlaying ? '⏸ Пауза' : '▶ Пуск';
+            document.getElementById('playBtn').textContent = isPlaying ? '⏸ Пауза' : '▶ Пуск';
         };
 
         window.resetTime = () => {
@@ -469,7 +289,8 @@
                         if (timeState.hour >= 24) {
                             timeState.hour = 0;
                             timeState.day++;
-                            if (timeState.day > 30) {
+                            const daysInMonth = new Date(timeState.year, timeState.month, 0).getDate();
+                            if (timeState.day > daysInMonth) {
                                 timeState.day = 1;
                                 timeState.month++;
                                 if (timeState.month > 12) {
@@ -497,13 +318,9 @@
             renderer.setSize(window.innerWidth - 420, window.innerHeight);
         });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const speedSlider = document.getElementById('speedSlider');
-            const speedLabel = document.getElementById('speedLabel');
-            speedSlider.addEventListener('input', (e) => {
-                timeSpeed = parseInt(e.target.value);
-                speedLabel.textContent = timeSpeed + 'x';
-            });
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            timeSpeed = parseInt(e.target.value);
+            document.getElementById('speedLabel').textContent = timeSpeed + 'x';
         });
 
         window.addEventListener('DOMContentLoaded', initScene);
