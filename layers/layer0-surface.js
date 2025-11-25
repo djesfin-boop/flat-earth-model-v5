@@ -162,33 +162,32 @@ class SurfaceLayer {
 `
     // sunPos, moonPos — объекты из index: {x,y,z,...}, sunDeclinationDeg — в градусах
     updateLighting(sunPos, moonPos, sunDeclinationDeg = 0) {
-        this.sunPosition  = { x: sunPos.x,  z: sunPos.z };
-        this.moonPosition = { x: moonPos.x, z: moonPos.z };
-        this.sunDeclination = sunDeclinationDeg;
+    this.sunPosition  = { x: sunPos.x,  z: sunPos.z };
+    this.moonPosition = { x: moonPos.x, z: moonPos.z };
 
-        if (!this.lightingOverlay || !this.lightingOverlay.material.uniforms) return;
+    if (!this.lightingOverlay || !this.lightingOverlay.material.uniforms) return;
 
-        const uniforms = this.lightingOverlay.material.uniforms;
+    const uniforms = this.lightingOverlay.material.uniforms;
 
-        uniforms.sunPosition.value.set(sunPos.x, sunPos.z);
-        uniforms.moonPosition.value.set(moonPos.x, moonPos.z);
+    uniforms.sunPosition.value.set(sunPos.x, sunPos.z);
+    uniforms.moonPosition.value.set(moonPos.x, moonPos.z);
 
-        const decRad = sunDeclinationDeg * Math.PI / 180.0;
-        uniforms.sunDeclRad.value = decRad;
+    const decRad = sunDeclinationDeg * Math.PI / 180.0;
+    uniforms.sunDeclRad.value = decRad;
 
-        // Фаза луны по относительному положению на плоскости (x,z)
-        const sx = sunPos.x, sz = sunPos.z;
-        const mx = moonPos.x, mz = moonPos.z;
-        const sunLen  = Math.sqrt(sx * sx + sz * sz);
-        const moonLen = Math.sqrt(mx * mx + mz * mz);
+    // фаза луны
+    const sx = sunPos.x, sz = sunPos.z;
+    const mx = moonPos.x, mz = moonPos.z;
+    const sunLen  = Math.sqrt(sx * sx + sz * sz);
+    const moonLen = Math.sqrt(mx * mx + mz * mz);
 
-        if (sunLen > 0 && moonLen > 0) {
-            const dot = (sx * mx + sz * mz) / (sunLen * moonLen);
-            let phase = Math.acos(Math.max(-1, Math.min(1, dot))) / Math.PI;
-            phase = (1 + Math.cos(phase * Math.PI)) / 2; // 0..1
-            uniforms.moonPhase.value = phase;
-        }
+    if (sunLen > 0 && moonLen > 0) {
+        const dot = (sx * mx + sz * mz) / (sunLen * moonLen);
+        let phase = Math.acos(Math.max(-1, Math.min(1, dot))) / Math.PI;
+        phase = (1 + Math.cos(phase * Math.PI)) / 2;
+        uniforms.moonPhase.value = phase;
     }
+}
 
     showEclipseMarker(lon, lat) {
         if (this.eclipseMarker) {
