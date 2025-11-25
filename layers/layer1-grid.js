@@ -1,6 +1,6 @@
 /**
- * Layer 1: Grid Layer - Азимутальная сетка координат и города
- * Отображает широты, долготы и названия городов для проверки модели
+ * Layer 1: Grid Layer - Проекция Глисона (равнорасстояний азимутальная)
+ * Азимутальная сетка координат, города, видимые линии
  */
 
 class GridLayer {
@@ -14,27 +14,46 @@ class GridLayer {
         this.createGrid();
     }
 
-    createGrid() {
-        // Параметры сетки
+    // Проекция Глисона: latitude → distance_from_center
+    gleasonProject(latitudeDeg, longitudeDeg) {
         const R = this.config.earthRadius;
-        const latStep = 10;    // каждые 10 градусов широты
-        const lonStep = 30;    // каждые 30 градусов долготы
+        
+        // Преобразуем географические координаты в полярные координаты на диске
+        // phi = угол от полюса в радианах
+        const phi = (90 - latitudeDeg) * Math.PI / 180;
+        
+        // distance = R * phi / (π/2) — равнорасстояний проекция Глисона
+        const distance = R * (phi / (Math.PI / 2));
+        
+        // theta = долгота в радианах
+        const theta = longitudeDeg * Math.PI / 180;
+        
+        // Декартовы координаты на плоскости
+        const x = distance * Math.sin(theta);
+        const z = distance * Math.cos(theta);
+        
+        return { x, z, distance };
+    }
 
-        // Материал для линий
-        const lineMaterial = new THREE.LineBasicMaterial({ color: 0x444466, linewidth: 1 });
-        const textMaterial = new THREE.MeshBasicMaterial({ color: 0x88aaff });
+    createGrid() {
+        const R = this.config.earthRadius;
+        const latStep = 10;
+        const lonStep = 30;
 
-        // Линии широты (параллели)
+        // Ярко видимые линии
+        const lineMaterial = new THREE.LineBasicMaterial({ 
+            color: 0x4488ff, 
+            linewidth: 2,
+            fog: false
+        });
+
+        // ========== ЛИНИИ ШИРОТЫ (параллели) ==========
         for (let lat = 0; lat <= 90; lat += latStep) {
-            const phi = (90 - lat) * Math.PI / 180;
-            const r = R * (phi / (Math.PI / 2));
-            
             const points = [];
-            for (let lon = 0; lon <= 360; lon += 5) {
-                const theta = lon * Math.PI / 180;
-                const x = r * Math.sin(theta);
-                const z = r * Math.cos(theta);
-                points.push(new THREE.Vector3(x, 5, z));
+            
+            for (let lon = 0; lon <= 360; lon += 3) {
+                const proj = this.gleasonProject(lat, lon);
+                points.push(new THREE.Vector3(proj.x, 8, proj.z));
             }
             
             const geometry = new THREE.BufferGeometry().setFromPoints(points);
@@ -43,38 +62,18 @@ class GridLayer {
 
             // Подпись широты
             if (lat > 0 && lat < 90) {
-                const labelLon = 0;
-                const theta = labelLon * Math.PI / 180;
-                const x = r * Math.sin(theta);
-                const z = r * Math.cos(theta);
-                
-                const canvas = document.createElement('canvas');
-                canvas.width = 256;
-                canvas.height = 64;
-                const ctx = canvas.getContext('2d');
-                ctx.fillStyle = '#88aaff';
-                ctx.font = 'bold 24px Arial';
-                ctx.fillText(`${lat}°`, 10, 40);
-                
-                const texture = new THREE.CanvasTexture(canvas);
-                const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-                const sprite = new THREE.Sprite(spriteMaterial);
-                sprite.position.set(x + 1000, 10, z);
-                sprite.scale.set(200, 50, 1);
-                this.gridGroup.add(sprite);
+                const proj = this.gleasonProject(lat, 0);
+                this.addLabel(`${lat}°`, proj.x + 1200, proj.z, 0x4488ff);
             }
         }
 
-        // Линии долготы (меридианы)
+        // ========== ЛИНИИ ДОЛГОТЫ (меридианы) ==========
         for (let lon = 0; lon < 360; lon += lonStep) {
             const points = [];
+            
             for (let lat = 0; lat <= 90; lat += 2) {
-                const phi = (90 - lat) * Math.PI / 180;
-                const r = R * (phi / (Math.PI / 2));
-                const theta = lon * Math.PI / 180;
-                const x = r * Math.sin(theta);
-                const z = r * Math.cos(theta);
-                points.push(new THREE.Vector3(x, 5, z));
+                const proj = this.gleasonProject(lat, lon);
+                points.push(new THREE.Vector3(proj.x, 8, proj.z));
             }
             
             const geometry = new THREE.BufferGeometry().setFromPoints(points);
@@ -82,7 +81,7 @@ class GridLayer {
             this.gridGroup.add(line);
         }
 
-        // Города
+        // ========== ГОРОДА ==========
         const cities = [
             { name: "Москва", lat: 55.75, lon: 37.62 },
             { name: "Лондон", lat: 51.51, lon: -0.13 },
@@ -95,47 +94,57 @@ class GridLayer {
         ];
 
         // Маркеры городов
-        const cityMarkerGeometry = new THREE.CircleGeometry(300, 16);
+        const cityMarkerGeometry = new THREE.CircleGeometry(400, 16);
         
         cities.forEach(city => {
-            const phi = (90 - city.lat) * Math.PI / 180;
-            const r = R * (phi / (Math.PI / 2));
-            const theta = city.lon * Math.PI / 180;
-            const x = r * Math.sin(theta);
-            const z = r * Math.cos(theta);
+            const proj = this.gleasonProject(city.lat, city.lon);
 
-            // Точка города
-            const cityMaterial = new THREE.MeshBasicMaterial({ 
-                color: 0xff6b6b,
-                transparent: true,
-                opacity: 0.8
-            });
-            const cityMarker = new THREE.Mesh(cityMarkerGeometry, cityMaterial);
-            cityMarker.position.set(x, 10, z);
-            cityMarker.rotation.x = -Math.PI / 2;
-            this.gridGroup.add(cityMarker);
+            // Проверка: точка в пределах диска
+            if (proj.distance <= R) {
+                // Красная точка
+                const cityMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xff4444,
+                    transparent: true,
+                    opacity: 0.9,
+                    fog: false
+                });
+                const cityMarker = new THREE.Mesh(cityMarkerGeometry, cityMaterial);
+                cityMarker.position.set(proj.x, 12, proj.z);
+                cityMarker.rotation.x = -Math.PI / 2;
+                this.gridGroup.add(cityMarker);
 
-            // Подпись города
-            const canvas = document.createElement('canvas');
-            canvas.width = 256;
-            canvas.height = 64;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#ff6b6b';
-            ctx.font = 'bold 20px Arial';
-            ctx.fillText(city.name, 10, 40);
-            ctx.fillStyle = '#aaaaaa';
-            ctx.font = '14px Arial';
-            ctx.fillText(`${city.lat.toFixed(1)}°,${city.lon.toFixed(1)}°`, 10, 55);
-            
-            const texture = new THREE.CanvasTexture(canvas);
-            const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-            const sprite = new THREE.Sprite(spriteMaterial);
-            sprite.position.set(x, 20, z);
-            sprite.scale.set(300, 100, 1);
-            this.gridGroup.add(sprite);
+                // Подпись города
+                this.addLabel(
+                    `${city.name}\n${city.lat.toFixed(1)}°,${city.lon.toFixed(1)}°`,
+                    proj.x + 600,
+                    proj.z,
+                    0xff4444
+                );
+            }
         });
 
         this.hideGrid();
+    }
+
+    addLabel(text, x, z, color) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        
+        ctx.fillStyle = `#${color.toString(16).padStart(6, '0')}`;
+        ctx.font = 'bold 28px Arial';
+        ctx.fillText(text, 20, 60);
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        const spriteMaterial = new THREE.SpriteMaterial({ 
+            map: texture,
+            fog: false
+        });
+        const sprite = new THREE.Sprite(spriteMaterial);
+        sprite.position.set(x, 15, z);
+        sprite.scale.set(400, 120, 1);
+        this.gridGroup.add(sprite);
     }
 
     toggleGrid() {
