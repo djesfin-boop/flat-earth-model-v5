@@ -1,6 +1,6 @@
 /**
  * Layer 0: Surface Layer - Flat Earth Model v6
- * Реалистичное освещение — пятно света по косинусному закону (азимутальная проекция)
+ * Реалистичное косинусное освещение в азимутальной проекции (пятна от светил)
  */
 
 class SurfaceLayer {
@@ -9,8 +9,8 @@ class SurfaceLayer {
         this.config = config;
         this.mesh = null;
         this.lightingOverlay = null;
-        this.sunPosition = { x: 0, y: 0 };
-        this.moonPosition = { x: 0, y: 0 };
+        this.sunPosition = { x: 0, z: 0 };
+        this.moonPosition = { x: 0, z: 0 };
         this.moonPhase = 0;
         this.eclipseMarker = null;
 
@@ -46,11 +46,11 @@ class SurfaceLayer {
                 moonPosition: { value: new THREE.Vector2(0, 0) },
                 earthRadius: { value: this.config.earthRadius },
                 dayColor: { value: new THREE.Color(0xffffff) },
-                nightColor: { value: new THREE.Color(0x000a1f) },
+                nightColor: { value: new THREE.Color(0x102235) },
                 dayBrightness: { value: 0.0 },
-                nightDarkness: { value: 0.75 },
+                nightDarkness: { value: 0.85 },
                 moonPhase: { value: 0.5 },
-                moonBrightness: { value: 0.4 }
+                moonBrightness: { value: 0.5 }
             },
             vertexShader: `
                 varying vec2 vPosition;
@@ -72,38 +72,36 @@ class SurfaceLayer {
 
                 varying vec2 vPosition;
 
-                // основные параметры светил (можно вынести в uniforms)
-                const float sunHeight = 5000.0;
+                const float sunHeight = 6000.0;
                 const float moonHeight = 4000.0;
 
                 void main() {
-                    // Вектор до центра пятна
+                    // Солнце: ортогональная модель, плавное косинусное пятно
                     vec2 toSun = vPosition - sunPosition;
                     float dist2 = dot(toSun, toSun);
                     float rSun = sqrt(dist2 + sunHeight * sunHeight);
                     float sunCos = sunHeight / rSun;
                     float sunLight = smoothstep(0.07, 0.16, sunCos);
 
+                    // Луна: то же самое, слабее и в зависимости от фазы
                     vec2 toMoon = vPosition - moonPosition;
                     float dist2m = dot(toMoon, toMoon);
                     float rMoon = sqrt(dist2m + moonHeight * moonHeight);
                     float moonCos = moonHeight / rMoon;
                     float moonLight = smoothstep(0.085, 0.18, moonCos) * moonBrightness * moonPhase;
 
-                    // Сумма освещенности
+                    // Комбинация света: преимущественно солнце, ночью подсветка от луны
                     float totalLight = sunLight + moonLight * (1.0 - sunLight);
 
-                    // Смешивание цветов дня и ночи
                     vec3 color = mix(nightColor, dayColor, totalLight);
 
-                    // Добавить голубоватое лунное пятно только ночью
-                    vec3 moonTint = vec3(0.60, 0.70, 0.93);
-                    color = mix(color, moonTint, moonLight * 0.7 * (1.0 - sunLight));
+                    // Добавить лунный голубой оттенок ночью
+                    vec3 moonTint = vec3(0.62, 0.74, 1.00);
+                    color = mix(color, moonTint, moonLight * 0.9 * (1.0 - sunLight));
 
-                    // Плавный альфа-переход от ночи к дню
                     float darkness = mix(nightDarkness, dayBrightness, totalLight);
 
-                    gl_FragColor = vec4(color, darkness);
+                    gl_FragColor = vec4(color, 1.0 - darkness);
                 }
             `
         });
@@ -115,18 +113,19 @@ class SurfaceLayer {
     }
 
     updateLighting(sunPos, moonPos) {
-        this.sunPosition = sunPos;
-        this.moonPosition = moonPos;
+        // Ключ: используем X и Z (плоские координаты)
+        this.sunPosition = { x: sunPos.x, z: sunPos.z };
+        this.moonPosition = { x: moonPos.x, z: moonPos.z };
+
         if (this.lightingOverlay && this.lightingOverlay.material.uniforms) {
             this.lightingOverlay.material.uniforms.sunPosition.value.set(sunPos.x, sunPos.z);
             this.lightingOverlay.material.uniforms.moonPosition.value.set(moonPos.x, moonPos.z);
 
-            // Фаза луны
+            // Фаза луны по позиции (оставляем прежнее приближение)
             const sx = sunPos.x, sz = sunPos.z;
             const mx = moonPos.x, mz = moonPos.z;
             const sunLen = Math.sqrt(sx * sx + sz * sz);
             const moonLen = Math.sqrt(mx * mx + mz * mz);
-
             if (sunLen > 0 && moonLen > 0) {
                 const dot = (sx * mx + sz * mz) / (sunLen * moonLen);
                 let phase = (Math.acos(Math.max(-1, Math.min(1, dot))) / Math.PI);
