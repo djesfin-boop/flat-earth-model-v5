@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flat Earth Model v6 - Реалистичное освещение плоскости</title>
+    <title>Flat Earth Model v6 - Реалистичное освещение</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -14,110 +14,156 @@
         .container { display: flex; height: 100vh; }
         #canvas { flex: 1; display: block; }
         .panel {
-            width: 380px;
+            width: 420px;
             background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
             color: #e0e0e0;
-            padding: 15px;
+            padding: 20px;
             overflow-y: auto;
             box-shadow: -5px 0 15px rgba(0,0,0,0.3);
         }
         .panel h1 {
-            font-size: 20px;
-            margin-bottom: 15px;
+            font-size: 24px;
+            margin-bottom: 20px;
             color: #4ecdc4;
             text-align: center;
         }
         .section {
-            margin-bottom: 15px;
+            margin-bottom: 25px;
             background: rgba(255,255,255,0.05);
-            padding: 12px;
-            border-radius: 8px;
+            padding: 15px;
+            border-radius: 10px;
             border: 1px solid rgba(78, 205, 196, 0.2);
         }
         .section-title {
-            font-size: 14px;
+            font-size: 16px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             color: #4ecdc4;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .control-group { margin-bottom: 10px; }
+        .control-group {
+            margin-bottom: 15px;
+        }
         .control-group label {
             display: block;
-            margin-bottom: 4px;
-            font-size: 12px;
+            margin-bottom: 5px;
+            font-size: 13px;
             color: #b0b0b0;
         }
-        .control-group input, .control-group select {
-            width: 100%;
-            padding: 6px;
-            background: rgba(0,0,0,0.3);
-            border: 1px solid rgba(78, 205, 196, 0.3);
-            border-radius: 4px;
-            color: #e0e0e0;
-            font-size: 13px;
-        }
-        .time-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .btn {
+        .control-group input,
+        .control-group select {
             width: 100%;
             padding: 8px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(78, 205, 196, 0.3);
+            border-radius: 5px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+        .control-group input:focus,
+        .control-group select:focus {
+            outline: none;
+            border-color: #4ecdc4;
+            box-shadow: 0 0 10px rgba(78, 205, 196, 0.3);
+        }
+        .time-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .btn {
+            width: 100%;
+            padding: 10px;
             background: linear-gradient(135deg, #4ecdc4 0%, #3aa99f 100%);
             border: none;
-            border-radius: 4px;
+            border-radius: 5px;
             color: white;
             font-weight: bold;
             cursor: pointer;
-            font-size: 13px;
-            margin-top: 8px;
+            transition: all 0.3s;
+            margin-top: 10px;
+            font-size: 14px;
         }
-        .btn:hover { box-shadow: 0 3px 10px rgba(78, 205, 196, 0.4); }
-        .btn-secondary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-        .speed-control { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
-        .speed-control input[type="range"] { flex: 1; }
-        .speed-label { min-width: 50px; text-align: center; font-weight: bold; color: #4ecdc4; font-size: 12px; }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .speed-control input[type="range"] {
+            flex: 1;
+        }
+        .speed-label {
+            min-width: 60px;
+            text-align: center;
+            font-weight: bold;
+            color: #4ecdc4;
+        }
         #currentTime {
             text-align: center;
-            padding: 8px;
+            padding: 10px;
             background: rgba(78, 205, 196, 0.1);
-            border-radius: 4px;
-            margin-bottom: 10px;
-            font-size: 16px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 18px;
             font-weight: bold;
             color: #4ecdc4;
         }
         #celestialInfo {
-            font-size: 11px;
-            color: #888;
-            margin-top: 8px;
-            padding: 8px;
-            background: rgba(0,0,0,0.2);
-            border-radius: 4px;
-            line-height: 1.5;
+            font-size: 12px;
+            color: #aaa;
+            line-height: 1.6;
         }
-        #eventList { max-height: 200px; overflow-y: auto; }
+        #eventList {
+            max-height: 250px;
+            overflow-y: auto;
+        }
         #eventList > div {
             background: rgba(0,0,0,0.2);
-            padding: 8px;
-            border-radius: 4px;
-            margin-bottom: 8px;
-            font-size: 12px;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 13px;
         }
         #eventList button {
-            margin-top: 6px;
-            padding: 4px 8px;
+            margin-top: 8px;
+            padding: 5px 10px;
             background: #ff6b6b;
             border: none;
             border-radius: 3px;
             color: white;
             cursor: pointer;
-            font-size: 11px;
+            font-size: 12px;
         }
-        hr { border: none; height: 1px; background: rgba(78, 205, 196, 0.2); margin: 8px 0; }
+        #eventList button:hover {
+            background: #ff5252;
+        }
+        hr {
+            border: none;
+            height: 1px;
+            background: rgba(78, 205, 196, 0.2);
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <canvas id="mapCanvas"></canvas>
+        <canvas id="canvas"></canvas>
         <div class="panel">
             <h1>🌍 Flat Earth Model v6</h1>
             
@@ -132,7 +178,7 @@
                 </div>
                 
                 <div class="speed-control">
-                    <label style="min-width: 70px; color: #b0b0b0; font-size: 12px;">Скорость:</label>
+                    <label style="min-width: 90px; color: #b0b0b0;">Скорость:</label>
                     <input type="range" id="speedSlider" min="1" max="10000" value="60" step="1">
                     <span class="speed-label" id="speedLabel">60x</span>
                 </div>
@@ -142,7 +188,7 @@
                 <div class="section-title">📅 Установить время</div>
                 <div class="control-group">
                     <label>Год</label>
-                    <input type="number" id="year" value="2025" min="1900" max="2100">
+                    <input type="number" id="year" value="2025" min="2000" max="2100">
                 </div>
                 <div class="time-controls">
                     <div class="control-group">
@@ -174,29 +220,23 @@
         </div>
     </div>
 
-    <script>
-        // ========== ПАРАМЕТРЫ ==========
-        const EARTH_RADIUS = 20000;  // м
-        const SUN_HEIGHT = 5000;     // м (высота над плоскостью)
-        const MOON_HEIGHT = 4000;    // м
-        const SUN_ORBIT_MIN = EARTH_RADIUS * 0.25;
-        const SUN_ORBIT_MAX = EARTH_RADIUS * 0.45;
-        const MOON_ORBIT = EARTH_RADIUS * 0.35;
-        
-        // ========== СОСТОЯНИЕ ==========
-        let canvas = document.getElementById('mapCanvas');
-        let ctx = canvas.getContext('2d');
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script type="module">
+        import SurfaceLayer from './layers/layer0-surface.js';
+
+        let scene, camera, renderer, controls, surfaceLayer;
         let timeState = { year: 2025, month: 11, day: 25, hour: 12, minute: 0, second: 0 };
         let isPlaying = false;
         let timeSpeed = 60;
         let lastFrameTime = Date.now();
-        
-        function resizeCanvas() {
-            canvas.width = window.innerWidth - 380;
-            canvas.height = window.innerHeight;
-        }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+
+        const EARTH_RADIUS = 20000;
+        const SUN_HEIGHT = 5000;
+        const MOON_HEIGHT = 4000;
+        const SUN_ORBIT_RADIUS_MIN = EARTH_RADIUS * 0.25;
+        const SUN_ORBIT_RADIUS_MAX = EARTH_RADIUS * 0.45;
+        const MOON_ORBIT_RADIUS = EARTH_RADIUS * 0.35;
 
         // ========== АСТРОНОМИЧЕСКИЕ РАСЧЁТЫ ==========
         
@@ -220,8 +260,8 @@
 
         function getSunOrbitRadius(declination) {
             const normalizedDeclination = declination / (23.44 * Math.PI / 180);
-            const midRadius = (SUN_ORBIT_MIN + SUN_ORBIT_MAX) / 2;
-            const radiusRange = (SUN_ORBIT_MAX - SUN_ORBIT_MIN) / 2;
+            const midRadius = (SUN_ORBIT_RADIUS_MIN + SUN_ORBIT_RADIUS_MAX) / 2;
+            const radiusRange = (SUN_ORBIT_RADIUS_MAX - SUN_ORBIT_RADIUS_MIN) / 2;
             return midRadius - normalizedDeclination * radiusRange;
         }
 
@@ -235,7 +275,6 @@
         }
 
         function getMoonIntensity(phase) {
-            // Реалистичная интенсивность лунного света (люксы)
             const I_max = 0.25;
             const intensity = I_max * Math.pow(Math.sin(Math.PI * phase), 2);
             return intensity;
@@ -253,25 +292,29 @@
             const sunZ = sunOrbitRadius * Math.sin(hourAngle);
             const sunY = SUN_HEIGHT;
             
-            // ЛУНА: фазный сдвиг относительно Солнца
             const moonPhase = getMoonPhase(time.year, time.month, time.day);
             const moonPhaseAngle = moonPhase * 2 * Math.PI;
             const moonAngle = hourAngle + moonPhaseAngle;
-            const moonX = MOON_ORBIT * Math.cos(moonAngle);
-            const moonZ = MOON_ORBIT * Math.sin(moonAngle);
+            const moonX = MOON_ORBIT_RADIUS * Math.cos(moonAngle);
+            const moonZ = MOON_ORBIT_RADIUS * Math.sin(moonAngle);
             const moonY = MOON_HEIGHT;
             
+            const season = getSeason(dayOfYear);
+            
             return {
-                sun: { x: sunX, y: sunY, z: sunZ, orbitRadius: sunOrbitRadius },
-                moon: { 
-                    x: moonX, 
-                    y: moonY, 
-                    z: moonZ, 
-                    phase: moonPhase,
-                    intensity: getMoonIntensity(moonPhase)
-                },
-                dayOfYear: dayOfYear
+                sun: { x: sunX, y: sunY, z: sunZ, orbitRadius: sunOrbitRadius, declination: declination * 180 / Math.PI },
+                moon: { x: moonX, y: moonY, z: moonZ, phase: moonPhase, phaseName: getMoonPhaseName(moonPhase), intensity: getMoonIntensity(moonPhase) },
+                dayOfYear: dayOfYear,
+                season: season,
+                hourAngle: hourAngle * 180 / Math.PI
             };
+        }
+
+        function getSeason(dayOfYear) {
+            if (dayOfYear >= 80 && dayOfYear < 172) return 'Весна';
+            if (dayOfYear >= 172 && dayOfYear < 266) return 'Лето';
+            if (dayOfYear >= 266 && dayOfYear < 355) return 'Осень';
+            return 'Зима';
         }
 
         function getMoonPhaseName(phase) {
@@ -285,95 +328,24 @@
             return 'Старая луна';
         }
 
-        // ========== РАСЧЁТ ОСВЕЩЁННОСТИ КАЖДОЙ ТОЧКИ ПЛОСКОСТИ ==========
-        
-        function calculateIllumination(x, z, sunPos, moonPos) {
-            // Расстояние от точки до проекции светила на плоскость
-            const sunDist = Math.sqrt((x - sunPos.x) ** 2 + (z - sunPos.z) ** 2);
-            const moonDist = Math.sqrt((x - moonPos.x) ** 2 + (z - moonPos.z) ** 2);
-            
-            // Угол падения солнечного света (косинус угла)
-            const sunDistance = Math.sqrt(sunDist ** 2 + sunPos.y ** 2);
-            const sunCosAngle = Math.max(0, sunPos.y / sunDistance);
-            
-            // Угол падения лунного света
-            const moonDistance = Math.sqrt(moonDist ** 2 + moonPos.y ** 2);
-            const moonCosAngle = Math.max(0, moonPos.y / moonDistance);
-            
-            // Интенсивность света убывает с квадратом расстояния
-            const sunIntensity = 100000 * sunCosAngle / (sunDistance ** 2 / 1e8);  // люксы (день)
-            const moonIntensity = moonPos.intensity * moonCosAngle / (moonDistance ** 2 / 1e8);  // люксы (ночь)
-            
-            // Общая освещённость
-            const totalLux = Math.max(sunIntensity, moonIntensity);
-            
-            // Нормализуем: день ~100000 люкс = 255, ночь ~0.25 люкс = 1
-            const normalized = Math.log10(totalLux + 1) / 5;  // логарифмическая шкала
-            const brightness = Math.min(255, Math.max(0, normalized * 255));
-            
-            return brightness;
-        }
-
-        // ========== РИСОВАНИЕ КАРТЫ ==========
-        
-        function drawMap(positions) {
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
-            const scale = 3;  // пиксели на метр
-            
-            // Проекция координат
-            const projectX = (x) => centerX + x * scale;
-            const projectY = (z) => centerY + z * scale;
-            
-            // Размер области отрисовки
-            const maxDist = Math.max(EARTH_RADIUS, SUN_ORBIT_MAX) * 1.5;
-            
-            // Создаём image data
-            const imageData = ctx.createImageData(canvas.width, canvas.height);
-            const data = imageData.data;
-            
-            for (let py = 0; py < canvas.height; py++) {
-                for (let px = 0; px < canvas.width; px++) {
-                    const x = (px - centerX) / scale;
-                    const z = (py - centerY) / scale;
-                    
-                    const brightness = calculateIllumination(x, z, positions.sun, positions.moon);
-                    
-                    // Заливаем пиксель: R=G=B=brightness (серая шкала)
-                    const idx = (py * canvas.width + px) * 4;
-                    data[idx] = brightness;      // R
-                    data[idx + 1] = brightness;  // G
-                    data[idx + 2] = brightness;  // B
-                    data[idx + 3] = 255;         // A
-                }
+        async function loadEvents() {
+            try {
+                const resp = await fetch('./assets/events/eclipse_events.json');
+                const events = await resp.json();
+                const eventList = document.getElementById('eventList');
+                eventList.innerHTML = events.map(ev => `
+                    <div>
+                        <b>${ev.event === 'solar_eclipse' ? '☀️ Солнечное затмение' : '🌙 Лунное затмение'}</b><br>
+                        ${ev.date.slice(0,10)}<br>
+                        ${ev.description}<br>
+                        <button onclick="window.setEventTime('${ev.date}',${ev.longitude},${ev.latitude})">Показать</button>
+                    </div>
+                `).join('<hr>');
+            } catch (error) {
+                document.getElementById('eventList').innerHTML = 'Ошибка загрузки';
             }
-            
-            ctx.putImageData(imageData, 0, 0);
-            
-            // Рисуем границу земли-плоскости
-            ctx.strokeStyle = '#444444';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, EARTH_RADIUS * scale, 0, Math.PI * 2);
-            ctx.stroke();
-            
-            // Рисуем орбиту Солнца
-            ctx.strokeStyle = 'rgba(255, 200, 0, 0.3)';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, positions.sun.orbitRadius * scale, 0, Math.PI * 2);
-            ctx.stroke();
-            
-            // Рисуем орбиту Луны
-            ctx.strokeStyle = 'rgba(150, 150, 255, 0.2)';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, MOON_ORBIT * scale, 0, Math.PI * 2);
-            ctx.stroke();
         }
 
-        // ========== ОБНОВЛЕНИЕ ИНТЕРФЕЙСА ==========
-        
         function updateTimeDisplay() {
             const h = String(timeState.hour).padStart(2, '0');
             const m = String(timeState.minute).padStart(2, '0');
@@ -385,15 +357,33 @@
         function updateCelestialInfo(positions) {
             const info = document.getElementById('celestialInfo');
             info.innerHTML = `
-                <b>☀️ Солнце:</b> орбита ${Math.round(positions.sun.orbitRadius)}м<br>
-                <b>🌙 Луна:</b> ${getMoonPhaseName(positions.moon.phase)} (${Math.round(positions.moon.phase * 100)}%)<br>
-                <b>💡 Лунный свет:</b> ${positions.moon.intensity.toFixed(4)} люкс<br>
-                <b>📍 День года:</b> ${positions.dayOfYear}
+                <b>☀️ Солнце:</b> орбита ${Math.round(positions.sun.orbitRadius)}м, склонение ${positions.sun.declination.toFixed(1)}°<br>
+                <b>🌙 Луна:</b> ${positions.moon.phaseName} (${Math.round(positions.moon.phase * 100)}%)<br>
+                <b>💡 Интенсивность Луны:</b> ${positions.moon.intensity.toFixed(4)} люкс<br>
+                <b>🗓 Сезон:</b> ${positions.season} | День года: ${positions.dayOfYear}
             `;
         }
 
-        // ========== УПРАВЛЕНИЕ ВРЕМЕНЕМ ==========
-        
+        window.setEventTime = (date, lon, lat) => {
+            const d = new Date(date);
+            timeState.year = d.getUTCFullYear();
+            timeState.month = d.getUTCMonth() + 1;
+            timeState.day = d.getUTCDate();
+            timeState.hour = d.getUTCHours();
+            timeState.minute = d.getUTCMinutes();
+            timeState.second = 0;
+            
+            document.getElementById('year').value = timeState.year;
+            document.getElementById('month').value = timeState.month;
+            document.getElementById('day').value = timeState.day;
+            document.getElementById('hour').value = timeState.hour;
+            document.getElementById('minute').value = timeState.minute;
+            
+            updateModel();
+            updateTimeDisplay();
+            if (surfaceLayer) surfaceLayer.showEclipseMarker(lon, lat);
+        };
+
         window.updateTimeFromInputs = () => {
             timeState.year = parseInt(document.getElementById('year').value);
             timeState.month = parseInt(document.getElementById('month').value);
@@ -401,46 +391,62 @@
             timeState.hour = parseInt(document.getElementById('hour').value);
             timeState.minute = parseInt(document.getElementById('minute').value);
             timeState.second = 0;
+            updateModel();
+            updateTimeDisplay();
         };
 
         window.togglePlay = () => {
             isPlaying = !isPlaying;
-            document.getElementById('playBtn').textContent = isPlaying ? '⏸ Пауза' : '▶ Пуск';
+            const btn = document.getElementById('playBtn');
+            btn.textContent = isPlaying ? '⏸ Пауза' : '▶ Пуск';
         };
 
         window.resetTime = () => {
-            const now = new Date();
-            timeState = {
-                year: now.getFullYear(),
-                month: now.getMonth() + 1,
-                day: now.getDate(),
-                hour: now.getHours(),
-                minute: now.getMinutes(),
-                second: now.getSeconds()
-            };
-            document.getElementById('year').value = timeState.year;
-            document.getElementById('month').value = timeState.month;
-            document.getElementById('day').value = timeState.day;
-            document.getElementById('hour').value = timeState.hour;
-            document.getElementById('minute').value = timeState.minute;
+            timeState = { year: 2025, month: 11, day: 25, hour: 12, minute: 0, second: 0 };
+            document.getElementById('year').value = 2025;
+            document.getElementById('month').value = 11;
+            document.getElementById('day').value = 25;
+            document.getElementById('hour').value = 12;
+            document.getElementById('minute').value = 0;
+            updateModel();
+            updateTimeDisplay();
         };
 
-        // ========== АНИМАЦИЯ ==========
-        
-        function advanceTime(deltaSeconds) {
-            timeState.second += deltaSeconds;
+        function initScene() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000510);
+            scene.fog = new THREE.Fog(0x000510, 100000, 300000);
             
-            while (timeState.second >= 60) { timeState.second -= 60; timeState.minute++; }
-            while (timeState.minute >= 60) { timeState.minute -= 60; timeState.hour++; }
-            while (timeState.hour >= 24) {
-                timeState.hour -= 24;
-                timeState.day++;
-                const daysInMonth = new Date(timeState.year, timeState.month, 0).getDate();
-                if (timeState.day > daysInMonth) {
-                    timeState.day = 1;
-                    timeState.month++;
-                    if (timeState.month > 12) { timeState.month = 1; timeState.year++; }
-                }
+            camera = new THREE.PerspectiveCamera(60, (window.innerWidth - 420) / window.innerHeight, 1000, 500000);
+            camera.position.set(0, 50000, 50000);
+            camera.lookAt(0, 0, 0);
+            
+            const canvas = document.getElementById('canvas');
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            renderer.setSize(window.innerWidth - 420, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 15000;
+            controls.maxDistance = 150000;
+            
+            scene.add(new THREE.AmbientLight(0x404060, 0.2));
+            
+            surfaceLayer = new SurfaceLayer(scene, { earthRadius: EARTH_RADIUS });
+            
+            updateModel();
+            updateTimeDisplay();
+            loadEvents();
+            animate();
+        }
+
+        function updateModel() {
+            if (surfaceLayer) {
+                const positions = calculateCelestialPositions(timeState);
+                surfaceLayer.updateLighting(positions.sun, positions.moon);
+                updateCelestialInfo(positions);
             }
         }
 
@@ -451,26 +457,56 @@
                 const now = Date.now();
                 const deltaTime = (now - lastFrameTime) / 1000;
                 lastFrameTime = now;
-                advanceTime(deltaTime * timeSpeed);
+                
+                timeState.second += deltaTime * timeSpeed;
+                
+                while (timeState.second >= 60) {
+                    timeState.second -= 60;
+                    timeState.minute++;
+                    if (timeState.minute >= 60) {
+                        timeState.minute = 0;
+                        timeState.hour++;
+                        if (timeState.hour >= 24) {
+                            timeState.hour = 0;
+                            timeState.day++;
+                            if (timeState.day > 30) {
+                                timeState.day = 1;
+                                timeState.month++;
+                                if (timeState.month > 12) {
+                                    timeState.month = 1;
+                                    timeState.year++;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                updateModel();
+                updateTimeDisplay();
             } else {
                 lastFrameTime = Date.now();
             }
             
-            const positions = calculateCelestialPositions(timeState);
-            drawMap(positions);
-            updateTimeDisplay();
-            updateCelestialInfo(positions);
+            controls.update();
+            renderer.render(scene, camera);
         }
 
-        // ========== ИНИЦИАЛИЗАЦИЯ ==========
-        
-        document.getElementById('speedSlider').addEventListener('input', (e) => {
-            timeSpeed = parseInt(e.target.value);
-            document.getElementById('speedLabel').textContent = timeSpeed + 'x';
+        window.addEventListener('resize', () => {
+            camera.aspect = (window.innerWidth - 420) / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth - 420, window.innerHeight);
         });
 
-        window.resetTime();
-        animate();
+        document.addEventListener('DOMContentLoaded', () => {
+            const speedSlider = document.getElementById('speedSlider');
+            const speedLabel = document.getElementById('speedLabel');
+            speedSlider.addEventListener('input', (e) => {
+                timeSpeed = parseInt(e.target.value);
+                speedLabel.textContent = timeSpeed + 'x';
+            });
+        });
+
+        window.addEventListener('DOMContentLoaded', initScene);
     </script>
 </body>
 </html>
