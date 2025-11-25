@@ -44,17 +44,22 @@ class SurfaceLayer {
             transparent: true,
             depthWrite: false,
             uniforms: {
-                sunPosition:    { value: new THREE.Vector2(0, 0) }, // (x,z)
-                moonPosition:   { value: new THREE.Vector2(0, 0) }, // (x,z)
-                earthRadius:    { value: this.config.earthRadius },
-                nightColor:     { value: new THREE.Color(0x020715) },
-                dayColor:       { value: new THREE.Color(0xf8f2d0) },
-                moonColor:      { value: new THREE.Color(0x7fa8ff) },
-                nightDarkness:  { value: 0.85 },
-                moonPhase:      { value: 0.5 },
-                moonBrightness: { value: 0.5 },
-                sunDeclRad:     { value: 0.0 } // склонение в радианах
-            },
+    sunPosition:    { value: new THREE.Vector2(0, 0) }, // (x,z) проекция солнца
+    moonPosition:   { value: new THREE.Vector2(0, 0) }, // (x,z) проекция луны
+    earthRadius:    { value: this.config.earthRadius },
+
+    dayColor:       { value: new THREE.Color(0xf8f2d0) }, // тёплый дневной свет
+    nightColor:     { value: new THREE.Color(0x050814) }, // тёмная ночь
+    sunsetColor:    { value: new THREE.Color(0xff7a33) }, // закат/рассвет
+    deepTwilight:   { value: new THREE.Color(0x112244) }, // глубокие сумерки
+    moonColor:      { value: new THREE.Color(0x7fa8ff) }, // лунный свет
+
+    nightDarkness:  { value: 0.90 }, // насколько темно ночью
+    moonPhase:      { value: 0.5 },
+    moonBrightness: { value: 0.5 },
+
+    sunDeclRad:     { value: 0.0 } // склонение солнца в радианах
+},
             vertexShader: `
                 varying vec2 vPos;
                 void main() {
