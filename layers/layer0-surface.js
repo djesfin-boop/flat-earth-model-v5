@@ -1,9 +1,9 @@
 /**
- * Layer 0: Surface Layer - Flat Earth Model v6
- * Реалистичное освещение в азимутальной проекции:
- * - световые пятна Солнца и Луны
- * - полярные дни/ночи с реалистичными сумерками
- * - градиент заката/восхода
+ * Layer 0: Surface Layer - Flat Earth Model v6.2
+ * Реалистичное косинусное освещение в азимутальной проекции
+ * - Точный расчёт зенитного угла для каждой точки
+ * - Круглые (не деформированные) световые пятна Солнца и Луны
+ * - Плавное затухание по косинусному закону
  */
 
 class SurfaceLayer {
@@ -14,7 +14,6 @@ class SurfaceLayer {
         this.lightingOverlay = null;
         this.sunPosition = { x: 0, z: 0 };
         this.moonPosition = { x: 0, z: 0 };
-        this.sunDeclination = 0;
         this.eclipseMarker = null;
 
         this.createSurface();
@@ -48,15 +47,11 @@ class SurfaceLayer {
                 sunPosition:    { value: new THREE.Vector2(0, 0) },
                 moonPosition:   { value: new THREE.Vector2(0, 0) },
                 earthRadius:    { value: this.config.earthRadius },
-                dayColor:       { value: new THREE.Color(0xf8f2d0) },
-                nightColor:     { value: new THREE.Color(0x050814) },
-                sunsetColor:    { value: new THREE.Color(0xff7a33) },
-                deepTwilight:   { value: new THREE.Color(0x112244) },
-                moonColor:      { value: new THREE.Color(0x7fa8ff) },
-                nightDarkness:  { value: 0.90 },
-                moonPhase:      { value: 0.5 },
-                moonBrightness: { value: 0.5 },
-                sunDeclRad:     { value: 0.0 }
+                sunColor:       { value: new THREE.Color(0xffffcc) },
+                moonColor:      { value: new THREE.Color(0xaabbff) },
+                sunBrightness:  { value: 1.0 },
+                moonBrightness: { value: 0.15 },
+                moonPhase:      { value: 0.5 }
             },
             vertexShader: `
                 varying vec2 vPos;
@@ -69,77 +64,56 @@ class SurfaceLayer {
                 uniform vec2  sunPosition;
                 uniform vec2  moonPosition;
                 uniform float earthRadius;
-                uniform vec3  dayColor;
-                uniform vec3  nightColor;
-                uniform vec3  sunsetColor;
-                uniform vec3  deepTwilight;
+                uniform vec3  sunColor;
                 uniform vec3  moonColor;
-                uniform float nightDarkness;
-                uniform float moonPhase;
+                uniform float sunBrightness;
                 uniform float moonBrightness;
-                uniform float sunDeclRad;
+                uniform float moonPhase;
 
                 varying vec2 vPos;
 
-                const float sunHeight  = 5000.0;
-                const float moonHeight = 4000.0;
-                const float PI         = 3.14159265359;
-
-                const float COS_DAY        = 0.25;
-                const float COS_CIVIL_TW   = 0.10;
-                const float COS_NAUT_TW    = 0.02;
-                const float COS_ASTR_TW    = -0.10;
-                const float COS_NIGHT      = -0.30;
+                const float sunHeight  = 5000.0;   // высота солнца над плоскостью
+                const float moonHeight = 4000.0;   // высота луны над плоскостью
 
                 void main() {
-                    // Нормированное расстояние от центра
-                    float r = length(vPos) / earthRadius;
-                    r = clamp(r, 0.0, 1.0);
+                    // Точка на плоскости
+                    vec2 p = vPos;
 
-                    // Псевдо-широта на диске
-                    float lat = r * (PI * 0.5);
-
-                    // Сезонный множитель
-                    float cosSeason = cos(lat - sunDeclRad);
-
-                    // Солнце
-                    vec2  toSun = vPos - sunPosition;
-                    float d2s   = dot(toSun, toSun);
-                    float rSun  = sqrt(d2s + sunHeight * sunHeight);
-                    float cosSunBase = sunHeight / rSun;
-                    float cosSun = cosSunBase * cosSeason;
-
-                    // Веса для сумерек
-                    float wDay     = smoothstep(COS_CIVIL_TW, COS_DAY, cosSun);
-                    float wCivil   = smoothstep(COS_NAUT_TW, COS_CIVIL_TW, cosSun) * (1.0 - wDay);
-                    float wNaut    = smoothstep(COS_ASTR_TW, COS_NAUT_TW, cosSun) * (1.0 - wDay - wCivil);
-                    float wAstr    = smoothstep(COS_NIGHT, COS_ASTR_TW, cosSun) * (1.0 - wDay - wCivil - wNaut);
-                    float wNight   = 1.0 - wDay - wCivil - wNaut - wAstr;
-
-                    // Цвет
-                    vec3 col = vec3(0.0);
-                    col += dayColor * wDay;
-                    col += sunsetColor * wCivil;
-                    col += deepTwilight * (wNaut + wAstr);
-                    col += nightColor * wNight;
-
-                    // Луна
-                    vec2  toMoon = vPos - moonPosition;
-                    float d2m    = dot(toMoon, toMoon);
-                    float rMoon  = sqrt(d2m + moonHeight * moonHeight);
-                    float cosMoon = moonHeight / rMoon;
-
-                    float moonCore  = smoothstep(0.12, 0.22, cosMoon);
-                    float moonHalo  = smoothstep(0.02, 0.12, cosMoon);
-                    float moonLight = (moonCore * 0.8 + moonHalo * 0.4) * moonBrightness * moonPhase;
-
-                    float sunMask = 1.0 - wDay;
-                    col = mix(col, moonColor, moonLight * sunMask);
-
-                    // Альфа
-                    float lightLevel = wDay + 0.6 * wCivil + 0.3 * (wNaut + wAstr) + 0.1 * moonLight;
-                    float alpha = mix(nightDarkness, 0.02, lightLevel);
-
+                    // ========== СОЛНЦЕ ==========
+                    // Расстояние от проекции солнца до текущей точки на плоскости
+                    vec2 toSun = p - sunPosition;
+                    float distSun = length(toSun);
+                    
+                    // Расстояние в 3D (учитывая высоту солнца)
+                    float r3dSun = sqrt(distSun * distSun + sunHeight * sunHeight);
+                    
+                    // Косинус зенитного угла (угол между вертикалью и лучом от солнца)
+                    float cosSun = sunHeight / r3dSun;
+                    
+                    // Яркость по косинусному закону (max при cosSun=1, min при cosSun=0)
+                    float sunBright = max(0.0, cosSun);
+                    sunBright = pow(sunBright, 1.2);  // немного усилить контраст
+                    
+                    // ========== ЛУНА ==========
+                    vec2 toMoon = p - moonPosition;
+                    float distMoon = length(toMoon);
+                    float r3dMoon = sqrt(distMoon * distMoon + moonHeight * moonHeight);
+                    float cosMoon = moonHeight / r3dMoon;
+                    float moonBright = max(0.0, cosMoon);
+                    moonBright = pow(moonBright, 1.2);
+                    
+                    // Фаза луны
+                    moonBright *= moonBrightness * moonPhase;
+                    
+                    // ========== ИТОГОВОЙ ЦВЕТ ==========
+                    // Луна видна только там, где солнце слабое
+                    vec3 col = sunColor * (sunBright * sunBrightness);
+                    col += moonColor * moonBright;
+                    
+                    // Альфа-канал: затемнение ночи (там, где нет ни солнца, ни луны)
+                    float light = sunBright + moonBright;
+                    float alpha = 0.9 - light * 0.85;  // ночь тёмная (alpha=0.9), день прозрачный (alpha=0.05)
+                    
                     gl_FragColor = vec4(col, alpha);
                 }
             `
@@ -158,14 +132,11 @@ class SurfaceLayer {
         if (!this.lightingOverlay || !this.lightingOverlay.material.uniforms) return;
 
         const uniforms = this.lightingOverlay.material.uniforms;
-
+        
         uniforms.sunPosition.value.set(sunPos.x, sunPos.z);
         uniforms.moonPosition.value.set(moonPos.x, moonPos.z);
 
-        const decRad = sunDeclinationDeg * Math.PI / 180.0;
-        uniforms.sunDeclRad.value = decRad;
-
-        // фаза луны
+        // Фаза луны
         const sx = sunPos.x, sz = sunPos.z;
         const mx = moonPos.x, mz = moonPos.z;
         const sunLen  = Math.sqrt(sx * sx + sz * sz);
