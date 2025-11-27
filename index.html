@@ -344,6 +344,10 @@ document.getElementById('speedLabel').textContent = timeSpeed + 'x';
 });
 
 window.addEventListener('DOMContentLoaded', initScene);
+  window.adjustTexture = (rot, ox, oy, sx = 1, sy = 1) => {
+    if (surfaceLayer) surfaceLayer.adjustTextureTransform(rot, ox, oy, sx, sy);
+};
+
 </script>
 </body>
 </html>
