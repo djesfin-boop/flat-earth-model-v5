@@ -2,7 +2,7 @@
  * Layer 0: Surface Layer - Flat Earth Model v6.3
  * Проекция Глисона (равнорасстояний азимутальная)
  * - Карта гружется как обычная текстура к кругу
- * - Когда текстура уже в азимутальной проекции, стандартных UV достаточно
+ * - Коррекция через texture.rotation, offset и repeat
  * - Яркие, ярко выраженные световые пятна (Солнце + Луна)
  * - Точный косинусный расчёт зенитного угла
  */
@@ -27,6 +27,21 @@ class SurfaceLayer {
             texture.wrapT = THREE.ClampToEdgeWrapping;
             texture.minFilter = THREE.LinearFilter;
             texture.magFilter = THREE.LinearFilter;
+            
+            // ========== КОРРЕКЦИЯ ТЕКСТУРЫ ==========
+            // Центр вращения — середина текстуры
+            texture.center.set(0.5, 0.5);
+            
+            // Поворот на -90° (подбирай: 0, ±π/2, ±π, ±π/4 и т.д.)
+            texture.rotation = -Math.PI / 2;
+            
+            // Сдвиги по U и V (если нужно выровнять сетку)
+            // Попробуй значения вроде 0.01, -0.02, 0.005 и т.п.
+            texture.offset.set(0.0, 0.0);
+            
+            // Масштаб (если карта чуть больше/меньше круга)
+            texture.repeat.set(1.0, 1.0);
+            
             const material = new THREE.MeshBasicMaterial({
                 map: texture,
                 side: THREE.DoubleSide
@@ -119,6 +134,18 @@ class SurfaceLayer {
             phase = (1 + Math.cos(phase * Math.PI)) / 2;
             uniforms.moonPhase.value = phase;
         }
+    }
+
+    // Вспомогательный метод для отладки
+    adjustTextureTransform(rotationDeg = -90, offsetX = 0, offsetY = 0, scaleX = 1, scaleY = 1) {
+        if (!this.mesh || !this.mesh.material.map) return;
+        const tex = this.mesh.material.map;
+        tex.center.set(0.5, 0.5);
+        tex.rotation = rotationDeg * Math.PI / 180;
+        tex.offset.set(offsetX, offsetY);
+        tex.repeat.set(scaleX, scaleY);
+        tex.needsUpdate = true;
+        console.log(`Rotation: ${rotationDeg}°, Offset: (${offsetX}, ${offsetY}), Scale: (${scaleX}, ${scaleY})`);
     }
 
     showEclipseMarker(lon, lat) {
