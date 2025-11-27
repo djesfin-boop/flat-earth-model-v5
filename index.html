@@ -349,5 +349,62 @@ window.addEventListener('DOMContentLoaded', initScene);
 };
 
 </script>
+  
+// ========== Система управления городами ==========
+window.gridCitiesManager = {
+  initCitiesPanel() {
+    const panelDiv = document.querySelector('.panel');
+    
+    // Находим раздел "Установить время"
+    const timeSection = document.querySelector('section:has(> .section-title:contains("Установить время"))');
+    
+    if (panelDiv && gridLayer) {
+      // Получаем данные городов из GridLayer
+      const cities = GridLayer.citiesData;
+      
+      // Новый раздел для городов
+      const citiesSection = document.createElement('section');
+      citiesSection.id = 'citiesSection';
+      citiesSection.innerHTML = '<div class="section-title">🏁 Города</div>';
+      
+      // Контейнер для кнопок городов с компактным лайаутом
+      const citiesGrid = document.createElement('div');
+      citiesGrid.style.cssText = 'display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;';
+      
+      cities.forEach(city => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-city';
+        btn.id = `city-${city.id}`;
+        btn.textContent = city.name;
+        btn.style.cssText = `background: linear-gradient(135deg, rgba(${(city.color >> 16) & 255}, ${(city.color >> 8) & 255}, ${city.color & 255}, 0.3), rgba(${(city.color >> 16) & 255}, ${(city.color >> 8) & 255}, ${city.color & 255}, 0.5)); border: 2px solid #${city.color.toString(16).padStart(6, '0')}; opacity: ${city.enabled ? 1 : 0.4}; padding: 8px; font-size: 12px;`;
+        
+        btn.addEventListener('click', () => {
+          if (gridLayer) {
+            gridLayer.toggleCityVisibility(city.id);
+            // Обновляем опасность кнопки
+            const marker = gridLayer.cityMarkers.get(city.id);
+            if (marker) {
+              btn.style.opacity = marker.visible ? '1' : '0.4';
+            }
+          }
+        });
+        
+        citiesGrid.appendChild(btn);
+        city.button = btn; // сохраняем ссылку
+      });
+      
+      citiesSection.appendChild(citiesGrid);
+      
+      // Вставляем перед разделом "Установить время"
+      timeSection ? timeSection.parentNode.insertBefore(citiesSection, timeSection) : panelDiv.appendChild(citiesSection);
+    }
+  }
+};
+
+// При загружении сцены инициализируем панель с городами
+setTimeout(() => {
+  window.gridCitiesManager.initCitiesPanel();
+}, 100);
+
 </body>
 </html>
