@@ -1,3 +1,4 @@
+36
 /**
  * Layer 0: Surface Layer - Flat Earth Model v6.3
  * Проекция Глисона (равнорасстояний азимутальная)
@@ -33,8 +34,7 @@ class SurfaceLayer {
             texture.center.set(0.5, 0.5);
             
             // Поворот на -90° (подбирай: 0, ±π/2, ±π, ±π/4 и т.д.)
-texture.rotation = 0;            
-            // Сдвиги по U и V (если нужно выровнять сетку)
+texture.rotation = Math.PI;            // Сдвиги по U и V (если нужно выровнять сетку)
             // Попробуй значения вроде 0.01, -0.02, 0.005 и т.п.
             texture.offset.set(0.0, 0.0);
             
